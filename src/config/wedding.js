@@ -105,6 +105,6 @@ export const wedding = {
     // 공유 카드 이미지 (JPG/PNG, 5MB 이하, 가로 800px 이상 권장). SVG는 카카오톡에서 표시되지 않습니다.
     image: 'images/og.png',
     // 배포한 청첩장 주소. 링크를 카톡방에 직접 붙여넣었을 때의 미리보기(og 태그)에 쓰입니다.
-    siteUrl: 'https://wedding-invitation-three-nu-93.vercel.app/',
+    siteUrl: 'https://wedding-invitation-three-nu-93.vercel.app',
   },
 }
