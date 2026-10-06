@@ -1,0 +1,90 @@
+.location__venue {
+  margin-bottom: 28px;
+  font-family: var(--font-serif);
+}
+
+.location__name {
+  font-size: 17px;
+}
+
+.location__name span {
+  font-size: 15px;
+  color: var(--color-text-muted);
+}
+
+.location__address {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.location__address .btn-small {
+  font-family: var(--font-sans);
+}
+
+.location__tel {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.location__map {
+  margin: 0 calc(var(--gutter) * -1);
+  height: 260px;
+  background: var(--color-accent-soft);
+}
+
+.location__map iframe {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  /* 지도 위에서 페이지 스크롤이 막히지 않도록 터치를 통과시킨다 */
+  pointer-events: none;
+}
+
+.location__nav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 0 calc(var(--gutter) * -1);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.location__nav-link {
+  padding: 14px 0;
+  font-size: 14px;
+  text-decoration: none;
+}
+
+.location__nav-link + .location__nav-link {
+  border-left: 1px solid var(--color-line);
+}
+
+.location__transport {
+  margin-top: 36px;
+  text-align: left;
+}
+
+.location__transport-item {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.location__transport-item:last-child {
+  border-bottom: none;
+}
+
+.location__transport-item h3 {
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.location__transport-item p {
+  font-size: 14px;
+  color: var(--color-text-muted);
+}

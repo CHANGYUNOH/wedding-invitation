@@ -1,0 +1,30 @@
+.share {
+  padding: 72px var(--gutter) calc(56px + env(safe-area-inset-bottom));
+  background: var(--color-bg-soft);
+  text-align: center;
+}
+
+.share__buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.share__kakao {
+  border-color: #fee500;
+  background: #fee500;
+  color: #191919;
+}
+
+.share__kakao:active {
+  background: #f5dc00;
+}
+
+.share__thanks {
+  margin-top: 48px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}

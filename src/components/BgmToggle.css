@@ -1,0 +1,21 @@
+.bgm {
+  position: fixed;
+  top: calc(14px + env(safe-area-inset-top));
+  /* 데스크톱에서도 청첩장 영역 오른쪽 위에 붙도록 */
+  right: max(14px, calc((100vw - var(--page-width)) / 2 + 14px));
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--color-line);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--color-text-muted);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.bgm.is-playing {
+  color: var(--color-accent);
+}

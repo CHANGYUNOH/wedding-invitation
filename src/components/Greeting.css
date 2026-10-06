@@ -1,0 +1,46 @@
+.greeting__message {
+  font-family: var(--font-serif);
+  font-size: 15px;
+  line-height: 2.1;
+}
+
+.greeting__divider {
+  width: 1px;
+  height: 48px;
+  margin: 44px auto;
+  background: var(--color-line);
+}
+
+.greeting__families {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 12px;
+  font-family: var(--font-serif);
+  font-size: 15px;
+}
+
+.greeting__family {
+  display: grid;
+  grid-template-columns: auto auto 3em;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.greeting__parents {
+  text-align: right;
+}
+
+.greeting__dot {
+  margin: 0 0.35em;
+  color: var(--color-text-muted);
+}
+
+.greeting__relation {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.greeting__child {
+  font-weight: 700;
+  text-align: left;
+}

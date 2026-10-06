@@ -1,0 +1,75 @@
+.guestbook__list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0 0 24px;
+  padding: 0;
+  list-style: none;
+  text-align: left;
+}
+
+.guestbook__item {
+  padding: 16px 18px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-bg-soft);
+}
+
+.guestbook__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.guestbook__meta strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.guestbook__meta time {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.guestbook__delete {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  margin: -6px -8px -6px auto;
+  border: none;
+  background: none;
+  color: var(--color-text-muted);
+}
+
+.guestbook__message {
+  margin-top: 8px;
+  font-size: 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.guestbook__empty {
+  margin-bottom: 24px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+}
+
+.guestbook__actions {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.guestbook__counter {
+  display: block;
+  margin-top: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+  text-align: right;
+}
+
+.guestbook__delete-target {
+  margin-bottom: 18px;
+  font-size: 15px;
+}

@@ -1,0 +1,110 @@
+.date__headline {
+  font-family: var(--font-serif);
+  font-size: 16px;
+  line-height: 1.9;
+}
+
+.calendar {
+  margin: 36px 0 44px;
+  padding: 28px 18px 20px;
+  border-top: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+}
+
+.calendar__month {
+  margin-bottom: 18px;
+  font-family: var(--font-serif);
+  font-size: 17px;
+}
+
+.calendar__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 14px;
+}
+
+.calendar__table th {
+  padding-bottom: 12px;
+  font-weight: 500;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.calendar__table td {
+  height: 42px;
+  padding: 0;
+  text-align: center;
+}
+
+.calendar__table td span {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+}
+
+.calendar__table .is-sunday {
+  color: var(--color-bride);
+}
+
+.calendar__table .is-saturday {
+  color: var(--color-groom);
+}
+
+.calendar__table td.is-wedding span {
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.countdown {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+.countdown__unit {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 64px;
+}
+
+.countdown__colon {
+  position: absolute;
+  left: -4px;
+  bottom: 4px;
+  font-family: var(--font-display);
+  font-size: 24px;
+  color: var(--color-text-muted);
+}
+
+.countdown__label {
+  font-family: var(--font-display);
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--color-text-muted);
+}
+
+.countdown__value {
+  font-family: var(--font-display);
+  font-size: 32px;
+  font-variant-numeric: tabular-nums;
+}
+
+.countdown__message {
+  margin-top: 24px;
+  font-family: var(--font-serif);
+  font-size: 15px;
+}
+
+.countdown__heart {
+  color: var(--color-bride);
+}
+
+.countdown__message strong {
+  color: var(--color-accent);
+}

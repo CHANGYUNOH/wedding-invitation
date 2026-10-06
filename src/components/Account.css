@@ -1,0 +1,95 @@
+.account__groups {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.account {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  text-align: left;
+}
+
+.account__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 16px 18px;
+  border: none;
+  background: none;
+  font-size: 15px;
+}
+
+.account--groom .account__toggle {
+  color: var(--color-groom);
+}
+
+.account--bride .account__toggle {
+  color: var(--color-bride);
+}
+
+.account__toggle svg {
+  transition: transform 0.3s ease;
+}
+
+.account.is-open .account__toggle svg {
+  transform: rotate(180deg);
+}
+
+/* 높이 0 → auto 애니메이션 */
+.account__panel {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 0.3s ease;
+}
+
+.account.is-open .account__panel {
+  grid-template-rows: 1fr;
+}
+
+.account__list {
+  min-height: 0;
+  margin: 0;
+  padding: 0 18px;
+  list-style: none;
+}
+
+.account__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.account__owner {
+  font-size: 14px;
+}
+
+.account__owner span {
+  margin-right: 4px;
+  color: var(--color-text-muted);
+}
+
+.account__number {
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--color-text-muted);
+  user-select: all;
+}
+
+.account__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.account__kakaopay {
+  border-color: #fee500;
+  background: #fee500;
+  color: #191919;
+}
