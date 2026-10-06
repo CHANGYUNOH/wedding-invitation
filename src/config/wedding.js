@@ -103,7 +103,8 @@ export const wedding = {
     title: '노찬규 ♥ 조수경 결혼합니다',
     description: '2027년 4월 17일 토요일 낮 12시 30분, 더세인트 6층 그랜드볼룸',
     // 공유 카드 이미지 (JPG/PNG, 5MB 이하, 가로 800px 이상 권장). SVG는 카카오톡에서 표시되지 않습니다.
-    image: 'images/og.png',
+    // 카카오톡은 같은 주소의 이미지를 한동안 저장해두므로, 이미지를 바꾸면 ?v= 뒤 숫자를 올려주세요.
+    image: 'images/og.png?v=2',
     // 배포한 청첩장 주소. 링크를 카톡방에 직접 붙여넣었을 때의 미리보기(og 태그)에 쓰입니다.
     siteUrl: 'https://wedding-invitation-three-nu-93.vercel.app',
   },
