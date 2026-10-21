@@ -32,7 +32,20 @@ npm run preview  # 빌드 결과 미리보기
 
 모든 문구와 정보는 [src/config/wedding.js](src/config/wedding.js) 한 파일에서 수정합니다.
 
-- **사진**: `public/images/` 아래 파일을 교체하고 `cover.image`, `gallery` 경로를 맞춰주세요. 지금 들어 있는 SVG는 자리표시용입니다.
+- **사진**: 원본 사진을 아래처럼 `photos/` 폴더에 넣고 `npm run photos`를 실행하세요. `npm run dev`·`npm run build` 때도 자동으로 실행됩니다.
+
+  ```
+  photos/
+    cover.jpg          ← 커버 사진 (가로 1200px로 줄임)
+    gallery/
+      01_xxx.jpg       ← 갤러리, 파일 이름순 (긴 변 1600px + 480px 썸네일)
+      02_xxx.jpg
+  ```
+
+  - 줄인 결과물은 `public/images/`에, 갤러리 목록은 `src/config/photos.generated.js`에 자동으로 만들어집니다. **이 둘을 커밋**하면 배포에 반영됩니다. 원본(`photos/`)은 git·Vercel에 올라가지 않습니다.
+  - 촬영 위치(GPS) 같은 메타데이터는 지워지고, 세로·가로 회전은 자동으로 맞춰집니다.
+  - 아이폰 HEIC 사진은 처리되지 않을 수 있으니 JPG로 내보내서 넣어주세요.
+  - 사진을 다시 넣으면 바뀐 것만 새로 만듭니다. 지금 들어 있는 SVG는 자리표시용이며 실제 사진을 넣으면 지워집니다.
 - **배경음악**: `public/audio/bgm.mp3`처럼 파일을 넣고 `bgm: 'audio/bgm.mp3'`로 지정합니다. 비워두면 버튼이 숨겨집니다. 모바일 브라우저는 자동재생을 막기 때문에 하객이 버튼을 눌러야 재생됩니다.
 - **지도 좌표**: 카카오맵에서 장소를 검색한 뒤 우클릭 → "여기 좌표 보기"로 위도(`lat`)·경도(`lng`)를 확인할 수 있습니다.
 - **공유 미리보기**: `share.image`(기본 `public/images/og.png`)가 카카오톡 공유 카드 이미지입니다. JPG/PNG, 5MB 이하, 가로 800px 이상을 권장하며 SVG는 표시되지 않습니다. `share.siteUrl`에는 배포 주소를 적어주세요. 주소를 카톡방에 직접 붙여넣었을 때의 미리보기에 쓰입니다.
@@ -77,4 +90,7 @@ VITE_SUPABASE_ANON_KEY=eyJ...
 - **Vercel / Netlify**: 저장소를 연결하고 Build command `npm run build`, Output `dist`. 환경 변수 3개를 대시보드에 등록합니다.
 - **GitHub Pages**: Actions로 `dist/`를 배포합니다. 환경 변수는 저장소 Secrets로 넘겨주세요.
 
-배포 후에는 카카오 디벨로퍼스 Web 플랫폼에 실제 도메인을 꼭 추가하고, `share.siteUrl`·`share.imageUrl`도 실제 주소로 바꿔주세요.
+배포 후에는 카카오 디벨로퍼스에 실제 도메인을 꼭 추가하고, `share.siteUrl`도 실제 주소로 바꿔주세요.
+
+- **Vercel 무료(Hobby) 플랜**: 커밋 작성자 이메일이 Vercel에 연결된 GitHub 계정의 이메일이어야 push 시 배포됩니다. 다르면 배포가 `BLOCKED` 상태로 멈춥니다.
+- **검색 노출 차단**: 이름·계좌번호가 검색되지 않도록 `index.html`의 `robots` 메타 태그와 `vercel.json`의 `X-Robots-Tag` 헤더로 검색엔진 수집을 막아 두었습니다. `robots.txt`로 막지는 않았는데, 그러면 카카오톡·SNS 링크 미리보기까지 안 나오기 때문입니다.

@@ -4,7 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
+    "photos": "node scripts/optimize-images.mjs",
+    "predev": "npm run photos",
     "dev": "vite --host",
+    "prebuild": "npm run photos",
     "build": "vite build",
     "preview": "vite preview --host"
   },
@@ -15,6 +18,7 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^6.1.2",
+    "sharp": "^0.35.5",
     "vite": "^8.3.3"
   }
 }

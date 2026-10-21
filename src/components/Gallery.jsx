@@ -8,26 +8,29 @@ import './Gallery.css'
 
 const INITIAL_COUNT = 9
 
+// 목록에는 'images/a.jpg' 같은 경로나 { src, thumb } 객체(npm run photos 결과)가 올 수 있다.
+const photos = wedding.gallery.map((p) => (typeof p === 'string' ? { src: p, thumb: p } : p))
+
 export default function Gallery() {
-  const images = wedding.gallery.map(asset)
+  const images = photos.map((p) => asset(p.src))
   const [expanded, setExpanded] = useState(false)
   const [openIndex, setOpenIndex] = useState(null)
 
   if (images.length === 0) return null
-  const visible = expanded ? images : images.slice(0, INITIAL_COUNT)
+  const visible = expanded ? photos : photos.slice(0, INITIAL_COUNT)
 
   return (
     <Section id="gallery" eyebrow="Gallery" title="우리의 순간">
       <Reveal className="gallery__grid">
-        {visible.map((src, i) => (
+        {visible.map((photo, i) => (
           <button
-            key={src}
+            key={photo.src}
             type="button"
             className="gallery__item"
             onClick={() => setOpenIndex(i)}
             aria-label={`사진 ${i + 1} 크게 보기`}
           >
-            <img src={src} alt="" loading="lazy" />
+            <img src={asset(photo.thumb)} alt="" loading="lazy" decoding="async" />
           </button>
         ))}
       </Reveal>

@@ -1,5 +1,7 @@
 // 청첩장의 모든 문구·정보는 이 파일에서 수정합니다.
 // 이미지·음악 경로는 public/ 폴더 기준 상대 경로입니다.
+// 커버·갤러리 사진은 photos/ 폴더에 원본을 넣으면 자동으로 줄여서 들어갑니다 (README 참고).
+import { photos } from './photos.generated.js'
 
 export const wedding = {
   groom: {
@@ -50,7 +52,7 @@ export const wedding = {
   },
 
   cover: {
-    image: 'images/cover.svg',
+    image: photos.cover ?? 'images/cover.svg',
     caption: 'WE ARE GETTING MARRIED',
   },
 
@@ -67,20 +69,8 @@ export const wedding = {
     ],
   },
 
-  gallery: [
-    'images/gallery/01.svg',
-    'images/gallery/02.svg',
-    'images/gallery/03.svg',
-    'images/gallery/04.svg',
-    'images/gallery/05.svg',
-    'images/gallery/06.svg',
-    'images/gallery/07.svg',
-    'images/gallery/08.svg',
-    'images/gallery/09.svg',
-    'images/gallery/10.svg',
-    'images/gallery/11.svg',
-    'images/gallery/12.svg',
-  ],
+  // photos/gallery/ 의 사진이 파일 이름순으로 들어갑니다.
+  gallery: photos.gallery,
 
   accounts: {
     groom: [

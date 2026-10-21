@@ -4,3 +4,6 @@ dist
 .env.local
 *.log
 .DS_Store
+
+# 원본 사진 (npm run photos 가 줄인 결과물만 public/images 에 커밋)
+photos/
