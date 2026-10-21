@@ -5,6 +5,8 @@ import { hasKakaoKey, getKakaoMaps } from '../lib/kakao.js'
 import { asset } from '../lib/asset.js'
 import { THEMES } from '../themes/index.js'
 import { ensureThemeFonts } from '../lib/theme-fonts.js'
+import { addPhotos, removePhoto } from './photos.js'
+import { toast } from '../components/Toast.jsx'
 import { GREETING_TEMPLATES, autoShareText, hasCoords, isValidDatetime, shortNameOf } from './draft.js'
 import { Check, CloseIcon, Datalist, Field, IconButton, PlusIcon, Row, Section, TextArea, TextInput } from './ui.jsx'
 
@@ -510,18 +512,171 @@ export function ShareSection({ draft, set, done }) {
   )
 }
 
-// ---------- 사진·음악 ----------
+// ---------- 사진 ----------
 
-export function MediaNote() {
+const MAX_GALLERY = 30
+
+// 눌러서 고르거나, PC에서는 사진을 끌어다 놓을 수 있는 영역
+function PhotoPicker({ multiple = false, onFiles, className = '', children }) {
+  const [over, setOver] = useState(false)
   return (
-    <Section id="media" emoji="📷" title="사진·배경음악" desc="사진과 음악 파일은 이 페이지에서 올릴 수 없어요.">
+    <label
+      className={`ed-photo-pick${over ? ' is-over' : ''} ${className}`}
+      onDragOver={(e) => {
+        e.preventDefault()
+        setOver(true)
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault()
+        setOver(false)
+        onFiles(e.dataTransfer.files)
+      }}
+    >
+      <input
+        type="file"
+        accept="image/*"
+        multiple={multiple}
+        className="ed-sr-only"
+        onChange={(e) => {
+          onFiles(e.target.files)
+          e.target.value = ''
+        }}
+      />
+      {children}
+    </label>
+  )
+}
+
+export function PhotoSection({ draft, set, done, urls }) {
+  const { cover, gallery } = draft.photos
+  const [busy, setBusy] = useState('')
+
+  const attach = async (fileList, target) => {
+    const files = [...fileList].filter((file) => file.type.startsWith('image/') || /.(heic|heif)$/i.test(file.name))
+    if (!files.length) return
+    const room = target === 'cover' ? 1 : MAX_GALLERY - gallery.length
+    const picked = files.slice(0, room)
+    if (picked.length < files.length && target === 'gallery') toast(`갤러리 사진은 최대 ${MAX_GALLERY}장까지 넣을 수 있어요.`)
+    setBusy(`사진을 준비하고 있어요… 0/${picked.length}`)
+    const { ids, failed, persistent } = await addPhotos(picked, (n, total) => setBusy(`사진을 준비하고 있어요… ${n}/${total}`))
+    setBusy('')
+    if (target === 'cover' && ids[0]) {
+      if (cover) removePhoto(cover)
+      set('photos.cover', ids[0])
+    }
+    if (target === 'gallery' && ids.length) set('photos.gallery', (list) => [...list, ...ids])
+    if (failed.length) toast(`${failed.length}장은 열 수 없어 건너뛰었어요. 아이폰 HEIC 사진은 JPG로 바꿔서 넣어주세요.`)
+    else if (!persistent) toast('이 브라우저에서는 사진이 임시 저장되지 않아요. 새로고침하면 다시 골라야 해요.')
+  }
+
+  const move = (i, step) =>
+    set('photos.gallery', (list) => {
+      const j = i + step
+      if (j < 0 || j >= list.length) return list
+      const next = [...list]
+      ;[next[i], next[j]] = [next[j], next[i]]
+      return next
+    })
+  const drop = (id) => {
+    removePhoto(id)
+    set('photos.gallery', (list) => list.filter((x) => x !== id))
+  }
+  const dropAll = () => {
+    if (!window.confirm('갤러리 사진을 모두 지울까요?')) return
+    gallery.forEach(removePhoto)
+    set('photos.gallery', [])
+  }
+  const dropCover = () => {
+    removePhoto(cover)
+    set('photos.cover', null)
+  }
+
+  return (
+    <Section
+      id="photos"
+      emoji="📷"
+      title="사진"
+      desc="표지 사진 1장과 갤러리 사진을 골라주세요. 첨부하지 않으면 지금 청첩장 사진을 그대로 써요."
+      done={done}
+      optional
+    >
+      <Field label="표지 사진" hint="세로로 긴 사진이 잘 어울려요.">
+        {cover ? (
+          <div className="ed-cover-photo">
+            {urls[cover] ? <img src={urls[cover]} alt="표지 사진" /> : <span className="ed-photo__loading" />}
+            <div className="ed-cover-photo__actions">
+              <PhotoPicker onFiles={(files) => attach(files, 'cover')} className="ed-btn">
+                바꾸기
+              </PhotoPicker>
+              <button type="button" className="ed-btn" onClick={dropCover}>
+                삭제
+              </button>
+            </div>
+          </div>
+        ) : (
+          <PhotoPicker onFiles={(files) => attach(files, 'cover')} className="ed-photo-drop">
+            <PlusIcon />
+            표지 사진 고르기
+            <small>눌러서 고르거나 사진을 끌어다 놓으세요</small>
+          </PhotoPicker>
+        )}
+      </Field>
+
+      <Field
+        label={`갤러리 사진${gallery.length ? ` ${gallery.length}장` : ''}`}
+        hint="화살표로 순서를 바꿀 수 있어요. 처음 9장이 먼저 보이고, 나머지는 ‘사진 더보기’로 보여요."
+      >
+        <div className="ed-photo-grid">
+          {gallery.map((id, i) => (
+            <div key={id} className="ed-photo">
+              {urls[id] ? <img src={urls[id]} alt={`갤러리 사진 ${i + 1}`} /> : <span className="ed-photo__loading" />}
+              <span className="ed-photo__num">{i + 1}</span>
+              <div className="ed-photo__actions">
+                <button type="button" aria-label={`${i + 1}번 사진 앞으로`} disabled={i === 0} onClick={() => move(i, -1)}>
+                  ‹
+                </button>
+                <button type="button" aria-label={`${i + 1}번 사진 삭제`} onClick={() => drop(id)}>
+                  ✕
+                </button>
+                <button
+                  type="button"
+                  aria-label={`${i + 1}번 사진 뒤로`}
+                  disabled={i === gallery.length - 1}
+                  onClick={() => move(i, 1)}
+                >
+                  ›
+                </button>
+              </div>
+            </div>
+          ))}
+          {gallery.length < MAX_GALLERY && (
+            <PhotoPicker multiple onFiles={(files) => attach(files, 'gallery')} className="ed-photo ed-photo--add">
+              <PlusIcon />
+              사진 추가
+            </PhotoPicker>
+          )}
+        </div>
+        {gallery.length > 1 && (
+          <button type="button" className="ed-link ed-photo-clear" onClick={dropAll}>
+            모두 지우기
+          </button>
+        )}
+      </Field>
+
+      {busy && (
+        <p className="ed-photo-busy" aria-live="polite">
+          {busy}
+        </p>
+      )}
+
       <ul className="ed-notes">
+        <li>사진은 알맞은 크기로 줄어들고, 촬영 위치 같은 정보는 지워져요.</li>
         <li>
-          <b>커버 사진 1장</b>과 <b>갤러리 사진</b>(원하는 순서대로 번호를 붙여서)을 원본 그대로 개발자에게 전달해주세요. 크기는 자동으로 줄어들어요.
+          첨부한 사진은 <b>이 브라우저에만</b> 임시 저장돼요. 마지막에 내려받으면 입력 내용과 함께 담겨요.
         </li>
-        <li>아이폰 사진은 JPG로 내보내서 보내주시면 좋아요.</li>
         <li>
-          <b>배경음악</b>을 넣고 싶다면 mp3 파일을 함께 전달해주세요.
+          <b>배경음악</b>을 넣고 싶다면 mp3 파일을 개발자에게 따로 전달해주세요.
         </li>
       </ul>
     </Section>

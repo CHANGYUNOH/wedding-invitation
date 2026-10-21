@@ -5,6 +5,7 @@ import { Toaster, toast } from '../components/Toast.jsx'
 import { blankDraft, checklist, clearDraft, draftFromConfig, loadDraft, saveDraft, toPreviewConfig } from './draft.js'
 import { toWeddingJs } from './exportConfig.js'
 import PreviewFrame from './Preview.jsx'
+import { clearPhotos, usePhotoUrls } from './photos.js'
 import { CloseIcon, Connector, PlusIcon } from './ui.jsx'
 import {
   AccountSection,
@@ -13,7 +14,7 @@ import {
   FamilySection,
   GreetingSection,
   HostSection,
-  MediaNote,
+  PhotoSection,
   ShareSection,
   TransportSection,
 } from './sections.jsx'
@@ -42,6 +43,7 @@ const SECTIONS = [
   { id: 'family', label: '혼주', Component: FamilySection },
   { id: 'ceremony', label: '예식', Component: CeremonySection, required: true },
   { id: 'greeting', label: '인사말', Component: GreetingSection },
+  { id: 'photos', label: '사진', Component: PhotoSection },
   { id: 'transport', label: '오시는 길', Component: TransportSection },
   { id: 'account', label: '계좌', Component: AccountSection },
   { id: 'share', label: '공유', Component: ShareSection },
@@ -60,6 +62,8 @@ function sectionDone(id, draft, checks) {
       return checks.filter((c) => c.id === 'ceremony' && c.required).every((c) => c.ok)
     case 'greeting':
       return Boolean(draft.greeting.title.trim() && draft.greeting.message.join('').trim())
+    case 'photos':
+      return Boolean(draft.photos.cover || draft.photos.gallery.length)
     case 'transport':
       return draft.venue.transport.some((t) => t.lines.some((l) => l.trim()))
     case 'account':
@@ -110,24 +114,45 @@ function Intro({ onBlank, onCurrent }) {
 
 // ---------- 마무리 ----------
 
+function saveFile(blob, name) {
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = name
+  a.click()
+  setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+
 function Finish({ draft, checks, onReset }) {
   const missing = checks.filter((c) => c.required && !c.ok)
+  const photoCount = (draft.photos.cover ? 1 : 0) + draft.photos.gallery.length
+  const [packing, setPacking] = useState(false)
 
-  const download = () => {
+  // 사진이 있으면 wedding.js 와 사진을 ZIP 하나로, 없으면 wedding.js 만 내려받는다.
+  const download = async () => {
     if (missing.length && !window.confirm(`${missing.map((c) => c.label).join(', ')}이(가) 비어 있어요. 그래도 내보낼까요?`)) return
-    const blob = new Blob([toWeddingJs(draft)], { type: 'text/javascript;charset=utf-8' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = 'wedding.js'
-    a.click()
-    setTimeout(() => URL.revokeObjectURL(url), 1000)
-    toast('wedding.js 파일을 내려받았어요.')
+    if (!photoCount) {
+      saveFile(new Blob([toWeddingJs(draft)], { type: 'text/javascript;charset=utf-8' }), 'wedding.js')
+      toast('wedding.js 파일을 내려받았어요.')
+      return
+    }
+    setPacking(true)
+    try {
+      const { buildPackage, packageName } = await import('./package.js')
+      saveFile(await buildPackage(draft), packageName())
+      toast(`입력 내용과 사진 ${photoCount}장을 압축 파일로 내려받았어요.`)
+    } catch (err) {
+      console.error(err)
+      toast('압축 파일을 만들지 못했어요. 잠시 후 다시 시도해주세요.')
+    } finally {
+      setPacking(false)
+    }
   }
 
   const copy = async () => {
     const ok = await copyText(toWeddingJs(draft))
-    toast(ok ? '내용을 복사했어요. 메신저에 붙여넣어 전달해도 돼요.' : '복사하지 못했어요. 파일 내려받기를 이용해주세요.')
+    if (!ok) toast('복사하지 못했어요. 파일 내려받기를 이용해주세요.')
+    else toast(photoCount ? '입력 내용을 복사했어요. 사진은 복사되지 않으니 내려받기를 이용해주세요.' : '내용을 복사했어요. 메신저에 붙여넣어 전달해도 돼요.')
   }
 
   return (
@@ -153,26 +178,28 @@ function Finish({ draft, checks, onReset }) {
       </ul>
 
       <div className="ed-finish__actions">
-        <button type="button" className="ed-btn ed-btn--primary ed-btn--lg" onClick={download}>
-          wedding.js 내려받기
+        <button type="button" className="ed-btn ed-btn--primary ed-btn--lg" onClick={download} disabled={packing}>
+          {packing ? '압축 파일 만드는 중…' : photoCount ? `내려받기 (입력 내용 + 사진 ${photoCount}장, .zip)` : 'wedding.js 내려받기'}
         </button>
         <button type="button" className="ed-btn ed-btn--lg" onClick={copy}>
-          내용 복사하기
+          입력 내용 복사하기
         </button>
       </div>
+      <p className="ed-field__hint">
+        카카오톡 안에서 열었다면 내려받기가 안 될 수 있어요. 오른쪽 위 메뉴의 ‘다른 브라우저로 열기’를 눌러주세요.
+      </p>
 
       <details className="ed-dev">
         <summary>개발자에게 전달된 파일은 이렇게 반영해요</summary>
         <ol>
           <li>
-            받은 파일로 <code>src/config/wedding.js</code> 를 바꿉니다.
+            압축 파일은 프로젝트 폴더에 그대로 풉니다. <code>src/config/wedding.js</code>가 바뀌고 사진은 <code>photos/</code>에
+            들어가요. (wedding.js만 받았다면 그 파일만 바꿉니다)
           </li>
           <li>
-            사진을 함께 받았다면 <code>photos/</code> 폴더에 넣습니다.
+            <code>npm run build</code>로 확인합니다. 사진은 이때 자동으로 줄어 <code>public/images</code>에 들어가요.
           </li>
-          <li>
-            <code>npm run build</code>로 확인한 뒤 커밋·push 하면 배포돼요.
-          </li>
+          <li>바뀐 파일을 커밋·push 하면 배포돼요.</li>
         </ol>
       </details>
 
@@ -218,16 +245,21 @@ export default function Editor() {
   }, [previewOpen])
 
   const set = useCallback((path, value) => setDraft((d) => setIn(d, path, value)), [])
-  const previewConfig = useMemo(() => draft && toPreviewConfig(draft, currentConfig), [draft])
+  const photoUrls = usePhotoUrls(draft ? [draft.photos.cover, ...draft.photos.gallery].filter(Boolean) : [])
+  // 사진 주소 객체는 매번 새로 만들어지므로, 내용(photoKey)이 바뀔 때만 미리보기를 다시 계산한다.
+  const photoKey = JSON.stringify(photoUrls)
+  const previewConfig = useMemo(() => draft && toPreviewConfig(draft, currentConfig, photoUrls), [draft, photoKey])
   const checks = useMemo(() => draft && checklist(draft), [draft])
 
   const start = (next) => {
+    clearPhotos() // 예전에 첨부하고 남은 사진 정리
     setDraft(next)
     window.scrollTo(0, 0)
   }
   const reset = () => {
     if (!window.confirm('입력한 내용을 모두 지우고 처음으로 돌아갈까요?')) return
     clearDraft()
+    clearPhotos()
     setDraft(null)
     setSavedAt(null)
     window.scrollTo(0, 0)
@@ -283,12 +315,10 @@ export default function Editor() {
         <main className="ed-form">
           {SECTIONS.map(({ id, Component }) => (
             <Fragment key={id}>
-              <Component draft={draft} set={set} done={sectionDone(id, draft, checks)} />
+              <Component draft={draft} set={set} done={sectionDone(id, draft, checks)} urls={photoUrls} />
               <Connector />
             </Fragment>
           ))}
-          <MediaNote />
-          <Connector />
           <Finish draft={draft} checks={checks} onReset={reset} />
         </main>
 

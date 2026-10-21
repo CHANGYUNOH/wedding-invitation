@@ -68,6 +68,8 @@ export function blankDraft(base) {
     accounts: { groom: accountRows('신랑'), bride: accountRows('신부') },
     bgm: base.bgm,
     share: { title: '', description: '', image: base.share.image, siteUrl: base.share.siteUrl },
+    // 편집 페이지에서 첨부한 사진 id (실제 파일은 photos.js 가 IndexedDB에 보관)
+    photos: { cover: null, gallery: [] },
   }
 }
 
@@ -147,8 +149,9 @@ export function autoShareText(draft) {
 export function finalize(draft) {
   const host = (p) => ({ ...p, name: p.name.trim(), shortName: shortNameOf(p) })
   const auto = autoShareText(draft)
+  const { photos: _photos, ...rest } = draft
   return {
-    ...draft,
+    ...rest,
     groom: host(draft.groom),
     bride: host(draft.bride),
     venue: {
@@ -170,8 +173,10 @@ export function finalize(draft) {
 }
 
 // 미리보기용 설정: 아직 비어 있는 필수 값은 자리표시 값으로 채워 화면이 깨지지 않게 한다.
-export function toPreviewConfig(draft, base) {
+// photoUrls: 첨부한 사진 id → 미리보기 주소. 첨부하지 않은 사진은 지금 청첩장 사진을 쓴다.
+export function toPreviewConfig(draft, base, photoUrls = {}) {
   const d = finalize(draft)
+  const attachedGallery = draft.photos.gallery.filter((id) => photoUrls[id]).map((id) => ({ src: photoUrls[id], thumb: photoUrls[id] }))
   const placeholder = (p, label) => ({ ...p, name: p.name || label, shortName: p.shortName || label })
   return {
     ...d,
@@ -183,8 +188,8 @@ export function toPreviewConfig(draft, base) {
       name: d.venue.name || '예식장 이름',
       ...(hasCoords(d.venue) ? {} : { lat: base.venue.lat, lng: base.venue.lng }),
     },
-    cover: { ...d.cover, image: base.cover.image },
-    gallery: base.gallery,
+    cover: { ...d.cover, image: photoUrls[draft.photos.cover] ?? base.cover.image },
+    gallery: attachedGallery.length ? attachedGallery : base.gallery,
   }
 }
 
@@ -199,6 +204,8 @@ export function checklist(draft) {
     { id: 'ceremony', label: '예식장 이름·주소', required: true, ok: Boolean(venue.name.trim() && venue.address.trim()) },
     { id: 'ceremony', label: '지도 위치', required: false, ok: hasCoords(venue) },
     { id: 'family', label: '혼주(부모님) 성함', required: false, ok: parents },
+    { id: 'photos', label: '표지 사진', required: false, ok: Boolean(draft.photos.cover) },
+    { id: 'photos', label: '갤러리 사진', required: false, ok: draft.photos.gallery.length > 0 },
     {
       id: 'account',
       label: '계좌번호',
