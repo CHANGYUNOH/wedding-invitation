@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { wedding } from './src/config/wedding.js'
@@ -20,8 +21,16 @@ function weddingMeta() {
   }
 }
 
+const page = (file) => fileURLToPath(new URL(file, import.meta.url))
+
 export default defineConfig({
   // 상대 경로로 빌드해서 GitHub Pages 하위 경로에서도 그대로 동작하게 한다.
   base: './',
   plugins: [react(), weddingMeta()],
+  build: {
+    rolldownOptions: {
+      // 하객용 청첩장(index.html)과 정보 입력 페이지(edit.html)를 따로 빌드한다.
+      input: { main: page('./index.html'), edit: page('./edit.html') },
+    },
+  },
 })

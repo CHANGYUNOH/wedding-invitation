@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { wedding } from '../config/wedding.js'
+import { useWedding } from '../lib/wedding-context.jsx'
+import { orderedHosts } from '../lib/hosts.js'
 import {
   kstParts,
   formatKoreanDate,
@@ -12,10 +13,6 @@ import Section from './Section.jsx'
 import Reveal from './Reveal.jsx'
 import './WeddingDate.css'
 
-const target = new Date(wedding.datetime)
-const when = kstParts(target)
-const weeks = monthMatrix(when.year, when.month)
-
 function useNow(intervalMs) {
   const [now, setNow] = useState(() => new Date())
   useEffect(() => {
@@ -25,7 +22,8 @@ function useNow(intervalMs) {
   return now
 }
 
-function Countdown() {
+function Countdown({ target }) {
+  const wedding = useWedding()
   const now = useNow(1000)
   const diff = Math.max(0, target - now)
   const units = [
@@ -37,10 +35,10 @@ function Countdown() {
   // 남은 일수는 위 카운트다운의 DAYS와 맞추고, 당일·지난 날짜 판단만 달력 기준으로 한다.
   const calendarDays = daysUntil(target, now)
   const days = calendarDays > 0 ? units[0].value : calendarDays
-  const { groom, bride } = wedding
+  const [first, second] = orderedHosts(wedding)
   const couple = (
     <>
-      {groom.shortName} <span className="countdown__heart">♥</span> {bride.shortName}
+      {first.shortName} <span className="countdown__heart">♥</span> {second.shortName}
     </>
   )
 
@@ -74,6 +72,11 @@ function Countdown() {
 }
 
 export default function WeddingDate() {
+  const wedding = useWedding()
+  const target = new Date(wedding.datetime)
+  const when = kstParts(target)
+  const weeks = monthMatrix(when.year, when.month)
+
   return (
     <Section id="date" eyebrow="Wedding Day" title="예식 일시" soft>
       <Reveal>
@@ -117,7 +120,7 @@ export default function WeddingDate() {
       </Reveal>
 
       <Reveal>
-        <Countdown />
+        <Countdown target={target} />
       </Reveal>
     </Section>
   )

@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { submitRsvp } from '../lib/api.js'
+import { useWedding, usePreview } from '../lib/wedding-context.jsx'
+import { orderedHosts } from '../lib/hosts.js'
 import Section from './Section.jsx'
 import Reveal from './Reveal.jsx'
 import Modal from './Modal.jsx'
@@ -27,7 +29,9 @@ function Segmented({ name, value, options, onChange }) {
 }
 
 function RsvpForm({ onDone }) {
-  const [form, setForm] = useState({ side: 'groom', attending: true, name: '', headcount: 1, meal: 'yes' })
+  const hosts = orderedHosts(useWedding())
+  const preview = usePreview()
+  const [form, setForm] = useState({ side: hosts[0].side, attending: true, name: '', headcount: 1, meal: 'yes' })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const set = (key) => (value) => setForm((f) => ({ ...f, [key]: value }))
@@ -36,6 +40,11 @@ function RsvpForm({ onDone }) {
     e.preventDefault()
     if (!form.name.trim()) {
       setError('성함을 입력해주세요.')
+      return
+    }
+    if (preview) {
+      toast('미리보기에서는 전송되지 않아요.')
+      onDone()
       return
     }
     setSubmitting(true)
@@ -60,10 +69,7 @@ function RsvpForm({ onDone }) {
           name="side"
           value={form.side}
           onChange={set('side')}
-          options={[
-            { value: 'groom', label: '신랑측' },
-            { value: 'bride', label: '신부측' },
-          ]}
+          options={hosts.map(({ side, label }) => ({ value: side, label: `${label}측` }))}
         />
       </div>
 

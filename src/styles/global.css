@@ -281,3 +281,10 @@ textarea.input {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+.preview-error {
+  padding: 120px var(--gutter);
+  font-size: 14px;
+  color: var(--color-text-muted);
+  text-align: center;
+}

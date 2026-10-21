@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { wedding } from '../config/wedding.js'
+import { useWedding } from '../lib/wedding-context.jsx'
 import { asset } from '../lib/asset.js'
 import Section from './Section.jsx'
 import Reveal from './Reveal.jsx'
@@ -8,10 +8,9 @@ import './Gallery.css'
 
 const INITIAL_COUNT = 9
 
-// 목록에는 'images/a.jpg' 같은 경로나 { src, thumb } 객체(npm run photos 결과)가 올 수 있다.
-const photos = wedding.gallery.map((p) => (typeof p === 'string' ? { src: p, thumb: p } : p))
-
 export default function Gallery() {
+  // 목록에는 'images/a.jpg' 같은 경로나 { src, thumb } 객체(npm run photos 결과)가 올 수 있다.
+  const photos = useWedding().gallery.map((p) => (typeof p === 'string' ? { src: p, thumb: p } : p))
   const images = photos.map((p) => asset(p.src))
   const [expanded, setExpanded] = useState(false)
   const [openIndex, setOpenIndex] = useState(null)

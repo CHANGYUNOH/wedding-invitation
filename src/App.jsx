@@ -1,4 +1,4 @@
-import { wedding } from './config/wedding.js'
+import { useWedding } from './lib/wedding-context.jsx'
 import Cover from './components/Cover.jsx'
 import Greeting from './components/Greeting.jsx'
 import WeddingDate from './components/WeddingDate.jsx'
@@ -12,6 +12,8 @@ import BgmToggle from './components/BgmToggle.jsx'
 import { Toaster } from './components/Toast.jsx'
 
 export default function App() {
+  const wedding = useWedding()
+
   return (
     <main className="page">
       <Cover />

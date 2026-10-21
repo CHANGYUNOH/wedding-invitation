@@ -42,8 +42,10 @@ export async function getKakao() {
 }
 
 // 카카오맵 SDK (카카오 디벨로퍼스에서 '카카오맵' 사용 설정 필요)
-export async function getKakaoMaps() {
-  await loadScript(`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false`)
+// services: 장소 검색(Places)이 필요한 편집 페이지에서만 켠다. 한 페이지에서는 한 가지만 쓴다.
+export async function getKakaoMaps({ services = false } = {}) {
+  const libraries = services ? '&libraries=services' : ''
+  await loadScript(`https://dapi.kakao.com/v2/maps/sdk.js?appkey=${KAKAO_JS_KEY}&autoload=false${libraries}`)
   await new Promise((resolve) => window.kakao.maps.load(resolve))
   return window.kakao.maps
 }

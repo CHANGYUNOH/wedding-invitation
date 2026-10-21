@@ -4,18 +4,25 @@
 import { photos } from './photos.generated.js'
 
 export const wedding = {
+  // 이름 표기 순서: 'groom-first'(신랑 먼저) 또는 'bride-first'(신부 먼저)
+  hostOrder: 'groom-first',
+  // 돌아가신 부모님은 fatherDeceased·motherDeceased 를 true 로 두면 이름 앞에 故 가 붙습니다.
   groom: {
     name: '노찬규',
     shortName: '찬규',
     father: '노충섭',
+    fatherDeceased: false,
     mother: '박은주',
+    motherDeceased: false,
     relation: '아들',
   },
   bride: {
     name: '조수경',
     shortName: '수경',
     father: '아빠',
+    fatherDeceased: false,
     mother: '엄마',
+    motherDeceased: false,
     relation: '딸',
   },
 

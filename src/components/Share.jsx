@@ -1,4 +1,4 @@
-import { wedding } from '../config/wedding.js'
+import { useWedding, usePreview } from '../lib/wedding-context.jsx'
 import { hasKakaoKey, getKakao } from '../lib/kakao.js'
 import { copyText } from '../lib/clipboard.js'
 import { asset } from '../lib/asset.js'
@@ -9,7 +9,14 @@ import './Share.css'
 const pageUrl = () => window.location.origin + window.location.pathname
 
 export default function Share() {
+  const wedding = useWedding()
+  const preview = usePreview()
+
   const shareKakao = async () => {
+    if (preview) {
+      toast('미리보기에서는 공유되지 않아요.')
+      return
+    }
     if (!hasKakaoKey) {
       toast('카카오 JavaScript 키(VITE_KAKAO_JS_KEY)를 설정해주세요.')
       return
@@ -36,6 +43,10 @@ export default function Share() {
   }
 
   const copyLink = async () => {
+    if (preview) {
+      toast('미리보기에서는 복사되지 않아요.')
+      return
+    }
     const ok = await copyText(pageUrl())
     toast(ok ? '청첩장 주소가 복사되었습니다.' : '복사하지 못했습니다.')
   }

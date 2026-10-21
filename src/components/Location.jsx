@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { wedding } from '../config/wedding.js'
+import { useWedding } from '../lib/wedding-context.jsx'
 import { hasKakaoKey, getKakaoMaps } from '../lib/kakao.js'
 import { copyText } from '../lib/clipboard.js'
 import Section from './Section.jsx'
@@ -7,9 +7,7 @@ import Reveal from './Reveal.jsx'
 import { toast } from './Toast.jsx'
 import './Location.css'
 
-const { venue } = wedding
-
-function KakaoMap({ onFail }) {
+function KakaoMap({ venue, onFail }) {
   const ref = useRef(null)
 
   useEffect(() => {
@@ -31,13 +29,13 @@ function KakaoMap({ onFail }) {
     return () => {
       cancelled = true
     }
-  }, [onFail])
+  }, [venue.lat, venue.lng, onFail])
 
   return <div ref={ref} className="location__map" />
 }
 
 // 카카오 키가 없을 때 쓰는 대체 지도 (OpenStreetMap)
-function FallbackMap() {
+function FallbackMap({ venue }) {
   const d = 0.004
   const bbox = [venue.lng - d, venue.lat - d * 0.7, venue.lng + d, venue.lat + d * 0.7].join(',')
   const src = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${venue.lat},${venue.lng}`
@@ -48,7 +46,7 @@ function FallbackMap() {
   )
 }
 
-const navLinks = [
+const navLinks = (venue) => [
   {
     label: '네이버지도',
     href: venue.naverMapUrl || `https://map.naver.com/p/search/${encodeURIComponent(venue.name)}`,
@@ -64,6 +62,7 @@ const navLinks = [
 ]
 
 export default function Location() {
+  const { venue } = useWedding()
   const [useKakao, setUseKakao] = useState(hasKakaoKey)
   const disableKakao = useCallback(() => setUseKakao(false), [])
 
@@ -92,9 +91,9 @@ export default function Location() {
       </Reveal>
 
       <Reveal>
-        {useKakao ? <KakaoMap onFail={disableKakao} /> : <FallbackMap />}
+        {useKakao ? <KakaoMap venue={venue} onFail={disableKakao} /> : <FallbackMap venue={venue} />}
         <div className="location__nav">
-          {navLinks.map((link) => (
+          {navLinks(venue).map((link) => (
             <a key={link.label} className="location__nav-link" href={link.href} target="_blank" rel="noreferrer">
               {link.label}
             </a>

@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { wedding } from '../config/wedding.js'
+import { useWedding } from '../lib/wedding-context.jsx'
+import { orderedHosts } from '../lib/hosts.js'
 import { copyText } from '../lib/clipboard.js'
 import Section from './Section.jsx'
 import Reveal from './Reveal.jsx'
@@ -60,6 +61,7 @@ function AccountGroup({ label, side, items }) {
 }
 
 export default function Account() {
+  const wedding = useWedding()
   const { accounts } = wedding
 
   return (
@@ -74,8 +76,9 @@ export default function Account() {
         </p>
       </Reveal>
       <Reveal className="account__groups">
-        <AccountGroup label="신랑측 계좌번호" side="groom" items={accounts.groom} />
-        <AccountGroup label="신부측 계좌번호" side="bride" items={accounts.bride} />
+        {orderedHosts(wedding).map(({ side, label }) => (
+          <AccountGroup key={side} label={`${label}측 계좌번호`} side={side} items={accounts[side]} />
+        ))}
       </Reveal>
     </Section>
   )

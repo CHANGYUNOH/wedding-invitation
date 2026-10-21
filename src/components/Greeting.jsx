@@ -1,4 +1,5 @@
-import { wedding } from '../config/wedding.js'
+import { useWedding } from '../lib/wedding-context.jsx'
+import { orderedHosts, parentName } from '../lib/hosts.js'
 import Section from './Section.jsx'
 import Reveal from './Reveal.jsx'
 import './Greeting.css'
@@ -7,9 +8,9 @@ function ParentLine({ person }) {
   return (
     <p className="greeting__family">
       <span className="greeting__parents">
-        {person.father}
+        {parentName(person.father, person.fatherDeceased)}
         <span className="greeting__dot">·</span>
-        {person.mother}
+        {parentName(person.mother, person.motherDeceased)}
       </span>
       <span className="greeting__relation">의 {person.relation}</span>
       <strong className="greeting__child">{person.shortName}</strong>
@@ -18,7 +19,8 @@ function ParentLine({ person }) {
 }
 
 export default function Greeting() {
-  const { greeting, groom, bride } = wedding
+  const wedding = useWedding()
+  const { greeting } = wedding
 
   return (
     <Section id="greeting" eyebrow="Invitation" title={greeting.title}>
@@ -29,8 +31,9 @@ export default function Greeting() {
       <Reveal className="greeting__divider" />
 
       <Reveal className="greeting__families">
-        <ParentLine person={groom} />
-        <ParentLine person={bride} />
+        {orderedHosts(wedding).map((person) => (
+          <ParentLine key={person.side} person={person} />
+        ))}
       </Reveal>
     </Section>
   )

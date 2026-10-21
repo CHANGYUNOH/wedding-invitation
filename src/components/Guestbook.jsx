@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { fetchGuestbook, addGuestbook, deleteGuestbook } from '../lib/api.js'
 import { kstParts, formatDotDate } from '../lib/date.js'
+import { usePreview } from '../lib/wedding-context.jsx'
 import Section from './Section.jsx'
 import Reveal from './Reveal.jsx'
 import Modal from './Modal.jsx'
@@ -9,6 +10,17 @@ import './Guestbook.css'
 
 const PAGE_SIZE = 5
 const MAX_MESSAGE = 300
+
+// 편집 페이지 미리보기에서 보여줄 예시 글
+const SAMPLE_ENTRIES = [
+  {
+    id: 'sample-1',
+    name: '하객',
+    message: '결혼 진심으로 축하드려요!\n행복하게 잘 사세요 :)',
+    created_at: new Date().toISOString(),
+  },
+  { id: 'sample-2', name: '친구', message: '두 사람의 앞날을 응원합니다.', created_at: new Date().toISOString() },
+]
 
 function WriteForm({ onDone }) {
   const [form, setForm] = useState({ name: '', password: '', message: '' })
@@ -124,6 +136,7 @@ function DeleteForm({ entry, onDone }) {
 }
 
 export default function Guestbook() {
+  const preview = usePreview()
   const [items, setItems] = useState([])
   const [hasMore, setHasMore] = useState(false)
   const [status, setStatus] = useState('loading') // loading | ready | error
@@ -144,8 +157,15 @@ export default function Guestbook() {
   }, [])
 
   useEffect(() => {
+    if (preview) {
+      setItems(SAMPLE_ENTRIES)
+      setStatus('ready')
+      return
+    }
     load(0)
-  }, [load])
+  }, [load, preview])
+
+  const previewOnly = (action) => () => (preview ? toast('미리보기에서는 작성·삭제할 수 없어요.') : action())
 
   return (
     <Section id="guestbook" eyebrow="Guestbook" title="방명록">
@@ -169,7 +189,7 @@ export default function Guestbook() {
                     type="button"
                     className="guestbook__delete"
                     aria-label={`${entry.name}님의 메시지 삭제`}
-                    onClick={() => setDeleting(entry)}
+                    onClick={previewOnly(() => setDeleting(entry))}
                   >
                     <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
                       <path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
@@ -193,7 +213,7 @@ export default function Guestbook() {
               더보기
             </button>
           )}
-          <button type="button" className="btn btn--primary" onClick={() => setWriting(true)}>
+          <button type="button" className="btn btn--primary" onClick={previewOnly(() => setWriting(true))}>
             축하 메시지 남기기
           </button>
         </div>

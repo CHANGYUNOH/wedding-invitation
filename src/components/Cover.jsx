@@ -1,13 +1,16 @@
-import { wedding } from '../config/wedding.js'
+import { useWedding } from '../lib/wedding-context.jsx'
+import { orderedHosts } from '../lib/hosts.js'
 import { asset } from '../lib/asset.js'
 import { kstParts, formatKoreanDate, formatKoreanTime, WEEKDAYS_EN } from '../lib/date.js'
 import './Cover.css'
 
-const when = kstParts(new Date(wedding.datetime))
 const pad = (n) => String(n).padStart(2, '0')
 
 export default function Cover() {
-  const { groom, bride, venue, cover } = wedding
+  const wedding = useWedding()
+  const { venue, cover } = wedding
+  const [first, second] = orderedHosts(wedding)
+  const when = kstParts(new Date(wedding.datetime))
 
   return (
     <header className="cover">
@@ -22,15 +25,15 @@ export default function Cover() {
       </div>
 
       <figure className="cover__photo">
-        <img src={asset(cover.image)} alt={`${groom.name}, ${bride.name} 웨딩 사진`} fetchPriority="high" />
+        <img src={asset(cover.image)} alt={`${first.name}, ${second.name} 웨딩 사진`} fetchPriority="high" />
       </figure>
 
       <p className="cover__caption">{cover.caption}</p>
 
       <h1 className="cover__names">
-        {groom.name}
+        {first.name}
         <span className="cover__and">·</span>
-        {bride.name}
+        {second.name}
       </h1>
 
       <p className="cover__info">
