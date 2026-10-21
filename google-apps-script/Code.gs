@@ -1,8 +1,12 @@
 /**
  * 모바일 청첩장 RSVP·방명록 저장용 Google Apps Script
  *
- * 구글 시트 > 확장 프로그램 > Apps Script 에 이 파일 내용을 그대로 붙여넣고,
- * setup 함수를 한 번 실행한 뒤 "웹 앱"으로 배포하세요. (자세한 순서는 README 참고)
+ * Apps Script 편집기에 이 파일 내용을 그대로 붙여넣고, setup 함수를 한 번 실행한 뒤
+ * "웹 앱"으로 배포하세요. (자세한 순서는 README 참고)
+ *
+ * - 구글 시트의 확장 프로그램 > Apps Script 에서 열었다면 그 시트에 저장합니다.
+ * - script.google.com 에서 따로 만들었다면 setup 이 내 드라이브에 '청첩장 응답' 시트를 새로 만들고,
+ *   실행 로그에 시트 주소를 알려줍니다.
  *
  * - '참석 의사' 시트: 하객이 보낸 참석 여부가 한 줄씩 쌓입니다.
  * - '방명록' 시트: 축하 메시지가 쌓입니다. 숨긴 열(id·salt·hash)은 삭제 비밀번호 확인용이니 지우지 마세요.
@@ -19,7 +23,11 @@ const MAX_HEADCOUNT = 10
 
 // 처음 한 번 실행: 시트와 머리글을 만든다.
 function setup() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet()
+  let ss = spreadsheet()
+  if (!ss) {
+    ss = SpreadsheetApp.create('청첩장 응답')
+    PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', ss.getId())
+  }
   ss.setSpreadsheetTimeZone('Asia/Seoul')
   Object.keys(SHEETS).forEach((key) => {
     const { name, headers } = SHEETS[key]
@@ -32,6 +40,15 @@ function setup() {
   ss.getSheets()
     .filter((s) => !Object.keys(SHEETS).some((k) => SHEETS[k].name === s.getName()) && s.getLastRow() === 0)
     .forEach((s) => ss.deleteSheet(s))
+  console.log(`준비 완료. 응답이 쌓일 시트: ${ss.getUrl()}`)
+}
+
+// 시트 메뉴에서 연 스크립트면 그 시트, 따로 만든 스크립트면 setup 이 만든 시트를 쓴다.
+function spreadsheet() {
+  const active = SpreadsheetApp.getActiveSpreadsheet()
+  if (active) return active
+  const id = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')
+  return id ? SpreadsheetApp.openById(id) : null
 }
 
 function doGet(e) {
@@ -139,7 +156,7 @@ function respond(fn) {
 }
 
 function sheet(key) {
-  const s = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEETS[key].name)
+  const s = spreadsheet()?.getSheetByName(SHEETS[key].name)
   if (!s) throw new Error('시트가 없습니다. Apps Script에서 setup 함수를 먼저 실행해주세요.')
   return s
 }
