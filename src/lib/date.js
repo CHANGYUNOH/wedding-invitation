@@ -2,6 +2,7 @@ const TIME_ZONE = 'Asia/Seoul'
 const WEEKDAY_KEYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 export const WEEKDAYS_KO = ['일', '월', '화', '수', '목', '금', '토']
 export const WEEKDAYS_EN = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT']
+export const WEEKDAYS_EN_FULL = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY']
 
 const formatter = new Intl.DateTimeFormat('en-US', {
   timeZone: TIME_ZONE,

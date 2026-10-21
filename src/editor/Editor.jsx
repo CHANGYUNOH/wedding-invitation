@@ -9,6 +9,7 @@ import { CloseIcon, Connector, PlusIcon } from './ui.jsx'
 import {
   AccountSection,
   CeremonySection,
+  DesignSection,
   FamilySection,
   GreetingSection,
   HostSection,
@@ -36,6 +37,7 @@ function useMediaQuery(query) {
 }
 
 const SECTIONS = [
+  { id: 'design', label: '디자인', Component: DesignSection },
   { id: 'host', label: '호스트', Component: HostSection, required: true },
   { id: 'family', label: '혼주', Component: FamilySection },
   { id: 'ceremony', label: '예식', Component: CeremonySection, required: true },
@@ -48,6 +50,8 @@ const SECTIONS = [
 function sectionDone(id, draft, checks) {
   const ok = (cid) => checks.filter((c) => c.id === cid && c.required !== false).every((c) => c.ok)
   switch (id) {
+    case 'design':
+      return true
     case 'host':
       return ok('host')
     case 'family':
@@ -92,7 +96,7 @@ function Intro({ onBlank, onCurrent }) {
         </button>
       </div>
       <ol className="ed-intro__steps" aria-label="진행 순서">
-        {['호스트·혼주 정보', '예식 일시·장소', '인사말·오시는 길', '마음 전하실 곳', '파일로 내보내기'].map((s, i) => (
+        {['디자인 선택', '호스트·혼주 정보', '예식 일시·장소', '인사말·계좌', '파일로 내보내기'].map((s, i) => (
           <li key={s}>
             <b>{i + 1}</b>
             {s}

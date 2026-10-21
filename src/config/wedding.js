@@ -4,6 +4,8 @@
 import { photos } from './photos.generated.js'
 
 export const wedding = {
+  // 디자인 템플릿: 'minimal'(미니멀 화이트), 'floral'(로맨틱 플로럴), 'dark'(모던 나이트), 'modern'(볼드 타이포)
+  theme: 'minimal',
   // 이름 표기 순서: 'groom-first'(신랑 먼저) 또는 'bride-first'(신부 먼저)
   hostOrder: 'groom-first',
   // 돌아가신 부모님은 fatherDeceased·motherDeceased 를 true 로 두면 이름 앞에 故 가 붙습니다.

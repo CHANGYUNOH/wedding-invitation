@@ -107,6 +107,233 @@
   }
 }
 
+/* ---------- 로맨틱 플로럴: 액자형 ---------- */
+
+.cover--frame {
+  padding-top: 52px;
+}
+
+.cover__script {
+  font-family: var(--font-script);
+  font-size: 34px;
+  line-height: 1.2;
+  color: var(--color-accent);
+  /* 'WE ARE GETTING MARRIED' → 'We are getting married' 처럼 필기체에 어울리게 */
+  text-transform: lowercase;
+}
+
+.cover__script::first-letter {
+  text-transform: uppercase;
+}
+
+.cover__frame {
+  position: relative;
+  width: calc(100% - 28px);
+  margin: 34px 0 0;
+  padding: 10px;
+  border: 1px solid var(--color-accent);
+  aspect-ratio: 4 / 5;
+}
+
+.cover__frame img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: var(--color-accent-soft);
+}
+
+.cover__corner {
+  position: absolute;
+  width: 112px;
+  height: 112px;
+  color: var(--color-accent);
+  pointer-events: none;
+}
+
+.cover__corner--tl {
+  top: -40px;
+  left: -40px;
+  transform: rotate(-90deg);
+}
+
+.cover__corner--br {
+  right: -40px;
+  bottom: -40px;
+  transform: rotate(90deg);
+}
+
+.cover--frame .cover__names {
+  margin-top: 40px;
+  font-size: 24px;
+  letter-spacing: 0.08em;
+}
+
+/* 필기체 &는 알아보기 어려워 기울인 세리프로 쓴다 */
+.cover--frame .cover__and {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-style: italic;
+  letter-spacing: 0;
+}
+
+/* ---------- 모던 나이트: 화면을 채운 사진 ---------- */
+
+.cover--full {
+  position: relative;
+  justify-content: flex-end;
+  padding: 0;
+  overflow: hidden;
+  color: #f6f1e7;
+}
+
+.cover__bg {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  background: var(--color-bg-soft);
+}
+
+.cover__bg img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 사진 위 글자가 잘 보이도록 아래쪽을 어둡게 */
+.cover--full::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    rgba(10, 11, 14, 0.2) 0%,
+    rgba(10, 11, 14, 0) 30%,
+    rgba(10, 11, 14, 0.55) 62%,
+    rgba(10, 11, 14, 0.94) 100%
+  );
+}
+
+.cover__content {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 var(--gutter) 28px;
+}
+
+.cover--full .cover__eyebrow {
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.4em;
+  color: var(--color-accent);
+}
+
+.cover--full .cover__names {
+  margin-top: 18px;
+  font-size: 27px;
+  font-weight: 300;
+  letter-spacing: 0.1em;
+  color: #f6f1e7;
+}
+
+.cover__rule {
+  width: 1px;
+  height: 36px;
+  margin: 22px 0 8px;
+  background: var(--color-accent);
+}
+
+.cover--full .cover__info {
+  color: rgba(246, 241, 231, 0.75);
+}
+
+.cover--full .cover__scroll {
+  margin-top: 20px;
+  padding-top: 0;
+}
+
+/* ---------- 볼드 타이포: 큰 날짜 ---------- */
+
+.cover--type {
+  align-items: stretch;
+  padding-top: 48px;
+  text-align: left;
+}
+
+.cover--type .cover__eyebrow {
+  font-family: var(--font-display);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  color: var(--color-accent);
+}
+
+.cover__bigdate {
+  margin-top: 12px;
+  font-family: var(--font-display);
+  font-size: 104px;
+  font-weight: 800;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+}
+
+.cover__bigdate span {
+  color: var(--color-accent);
+}
+
+.cover__sub {
+  margin-top: 14px;
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.25em;
+  color: var(--color-text-muted);
+}
+
+.cover__square {
+  position: relative;
+  margin: 30px 14px 0 0;
+  aspect-ratio: 1;
+}
+
+/* 사진 뒤로 비켜 놓인 색 블록 */
+.cover__square::before {
+  content: '';
+  position: absolute;
+  inset: 14px -14px -14px 14px;
+  background: var(--color-accent-soft);
+}
+
+.cover__square img {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover--type .cover__names {
+  margin-top: 40px;
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.cover--type .cover__and {
+  margin: 0 0.35em;
+  font-weight: 400;
+}
+
+.cover--type .cover__info {
+  margin-top: 10px;
+}
+
+.cover--type .cover__scroll {
+  align-self: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cover,
   .cover__scroll {

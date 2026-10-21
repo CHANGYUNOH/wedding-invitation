@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { orderedHosts, parentName } from '../lib/hosts.js'
 import { kstParts, formatKoreanDate, formatKoreanTime } from '../lib/date.js'
 import { hasKakaoKey, getKakaoMaps } from '../lib/kakao.js'
 import { asset } from '../lib/asset.js'
+import { THEMES } from '../themes/index.js'
+import { ensureThemeFonts } from '../lib/theme-fonts.js'
 import { GREETING_TEMPLATES, autoShareText, hasCoords, isValidDatetime, shortNameOf } from './draft.js'
 import { Check, CloseIcon, Datalist, Field, IconButton, PlusIcon, Row, Section, TextArea, TextInput } from './ui.jsx'
 
@@ -13,6 +15,56 @@ const BANKS = [
   '새마을금고', '신협', '우체국', '수협', '산업은행',
 ]
 const TRANSPORT_TITLES = ['지하철', '버스', '자가용', '주차', '셔틀버스', '기차', '고속버스']
+
+// ---------- 디자인 ----------
+
+export function DesignSection({ draft, set, done }) {
+  // 카드 안 미리보기 글자를 각 템플릿 글꼴로 보여준다.
+  useEffect(() => THEMES.forEach(ensureThemeFonts), [])
+  const [first, second] = orderedHosts(draft)
+  const when = isValidDatetime(draft.datetime) ? kstParts(new Date(draft.datetime)) : null
+  const pad = (n) => String(n).padStart(2, '0')
+  const date = when ? `${pad(when.month)}/${pad(when.day)}` : '04/17'
+
+  return (
+    <Section id="design" emoji="🎨" title="디자인 선택" desc="마음에 드는 디자인을 골라주세요. 언제든 바꿀 수 있고 미리보기에 바로 반영돼요." done={done}>
+      <div className="ed-themes" role="radiogroup" aria-label="디자인 템플릿">
+        {THEMES.map((t) => {
+          const active = draft.theme === t.id
+          const vars = {
+            '--t-bg': t.swatch.bg,
+            '--t-soft': t.swatch.soft,
+            '--t-text': t.swatch.text,
+            '--t-accent': t.swatch.accent,
+            '--t-display': t.typeface.display,
+            '--t-font': t.typeface.text,
+          }
+          return (
+            <button
+              key={t.id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              className={`ed-theme${active ? ' is-active' : ''}`}
+              style={vars}
+              onClick={() => set('theme', t.id)}
+            >
+              <span className={`ed-theme__thumb ed-theme__thumb--${t.cover}`} aria-hidden="true">
+                <span className="ed-theme__date">{t.cover === 'type' ? date.replace('/', '.') : date}</span>
+                <span className="ed-theme__photo" />
+                <span className="ed-theme__names">
+                  {first.name || first.label} {t.cover === 'arch' ? '·' : '&'} {second.name || second.label}
+                </span>
+              </span>
+              <span className="ed-theme__name">{t.name}</span>
+              <span className="ed-theme__desc">{t.desc}</span>
+            </button>
+          )
+        })}
+      </div>
+    </Section>
+  )
+}
 
 // ---------- 호스트 ----------
 

@@ -1,0 +1,174 @@
+/*
+ * 디자인 템플릿별 색·글꼴·장식. 기본값(미니멀 화이트)은 global.css 의 :root 에 있다.
+ * 템플릿 목록과 표지 구성은 src/themes/index.js 참고.
+ */
+
+/* ---------- 로맨틱 플로럴 ---------- */
+
+:root[data-theme='floral'] {
+  --color-backdrop: #f3e7e4;
+  --color-bg: #fffaf8;
+  --color-bg-soft: #fbf0ed;
+  --color-text: #4b3a3a;
+  --color-text-muted: #9a8382;
+  --color-line: #efdcd7;
+  --color-accent: #c4868a;
+  --color-accent-soft: #f8e6e4;
+  --color-accent-strong: #9e5f64;
+  --color-on-accent: #ffffff;
+  --color-groom: #7f93b0;
+  --color-bride: #c4868a;
+
+  --font-serif: 'Nanum Myeongjo', 'Gowun Batang', serif;
+  --font-display: 'Cormorant Garamond', serif;
+  --font-script: 'Pinyon Script', 'Cormorant Garamond', cursive;
+  --radius: 14px;
+
+  /* 제목 아래 꽃가지 장식 모양 */
+  --sprig: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 20'><g fill='none' stroke='black' stroke-width='0.9' stroke-linecap='round'><path d='M4 11c8-4 16 3 26-1'/><path d='M76 11c-8-4-16 3-26-1'/></g><g fill='black'><path d='M14 8.5c2-3 6-3.5 7-2.5c-1.5 2.5-5 3.5-7 2.5z'/><path d='M22 11.5c2.5-1 6 0 7 1.5c-2.5 1.5-5.5 1-7-1.5z'/><path d='M66 8.5c-2-3-6-3.5-7-2.5c1.5 2.5 5 3.5 7 2.5z'/><path d='M58 11.5c-2.5-1-6 0-7 1.5c2.5 1.5 5.5 1 7-1.5z'/><circle cx='40' cy='10' r='3.2'/><circle cx='35.6' cy='9.4' r='1.4'/><circle cx='44.4' cy='9.4' r='1.4'/></g></svg>");
+}
+
+:root[data-theme='floral'] .section__eyebrow {
+  font-family: var(--font-script);
+  font-size: 30px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* 제목 아래 작은 꽃가지 */
+:root[data-theme='floral'] .section__title::after {
+  content: '';
+  display: block;
+  width: 80px;
+  height: 20px;
+  margin: 14px auto 0;
+  background: var(--color-accent);
+  -webkit-mask: var(--sprig) no-repeat center / contain;
+  mask: var(--sprig) no-repeat center / contain;
+}
+
+
+:root[data-theme='floral'] .greeting__divider {
+  width: 80px;
+  height: 20px;
+  background: var(--color-accent);
+  opacity: 0.6;
+  -webkit-mask: var(--sprig) no-repeat center / contain;
+  mask: var(--sprig) no-repeat center / contain;
+}
+
+/* ---------- 모던 나이트 ---------- */
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --color-backdrop: #0c0d10;
+  --color-bg: #15171c;
+  --color-bg-soft: #1b1e24;
+  --color-text: #ebe5d8;
+  --color-text-muted: #9c968b;
+  --color-line: #2d3038;
+  --color-accent: #c9a96b;
+  --color-accent-soft: #29251b;
+  --color-accent-strong: #e2c88f;
+  --color-on-accent: #15171c;
+  --color-groom: #92a8c6;
+  --color-bride: #d6a0a0;
+  --color-danger: #e0796f;
+
+  --font-serif: 'Noto Serif KR', serif;
+  --font-display: 'Cinzel', serif;
+  --shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+}
+
+:root[data-theme='dark'] .page {
+  box-shadow: none;
+}
+
+:root[data-theme='dark'] .section__eyebrow {
+  font-size: 13px;
+  letter-spacing: 0.38em;
+}
+
+:root[data-theme='dark'] .section__title {
+  font-weight: 300;
+}
+
+/* 제목 아래 가는 금색 세로선 */
+:root[data-theme='dark'] .section__title::after {
+  content: '';
+  display: block;
+  width: 1px;
+  height: 28px;
+  margin: 18px auto 0;
+  background: var(--color-accent);
+}
+
+:root[data-theme='dark'] .greeting__divider {
+  width: 40px;
+  height: 1px;
+  background: var(--color-accent);
+}
+
+/* 밝은 지도가 튀지 않게 살짝 낮춘다 */
+:root[data-theme='dark'] .location__map {
+  filter: brightness(0.85) saturate(0.8);
+}
+
+/* ---------- 볼드 타이포 ---------- */
+
+:root[data-theme='modern'] {
+  --color-backdrop: #e8e6e1;
+  --color-bg: #ffffff;
+  --color-bg-soft: #f4f2ee;
+  --color-text: #151515;
+  --color-text-muted: #6d6d6d;
+  --color-line: #e3e0da;
+  --color-accent: #c0562f;
+  --color-accent-soft: #f7e8e0;
+  --color-accent-strong: #973f1f;
+  --color-on-accent: #ffffff;
+  --color-groom: #3d5a80;
+  --color-bride: #c0562f;
+
+  --font-serif: var(--font-sans);
+  --font-display: 'Montserrat', var(--font-sans);
+  --radius: 2px;
+}
+
+:root[data-theme='modern'] .section__eyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+}
+
+:root[data-theme='modern'] .section__title {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* 제목 아래 짧고 굵은 막대 */
+:root[data-theme='modern'] .section__title::after {
+  content: '';
+  display: block;
+  width: 24px;
+  height: 3px;
+  margin: 16px auto 0;
+  background: var(--color-text);
+}
+
+:root[data-theme='modern'] .greeting__message {
+  font-size: 15px;
+  line-height: 2;
+}
+
+:root[data-theme='modern'] .greeting__divider {
+  width: 24px;
+  height: 3px;
+  background: var(--color-accent);
+}
+
+:root[data-theme='modern'] .countdown__value {
+  font-weight: 700;
+}

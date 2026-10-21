@@ -9,6 +9,8 @@
   --color-line: #e9e4dd;
   --color-accent: #a88f78;
   --color-accent-soft: #f4efe9;
+  --color-accent-strong: #7a6450;
+  --color-on-accent: #ffffff;
   --color-groom: #7189a6;
   --color-bride: #bf8686;
   --color-danger: #c0605a;
@@ -17,6 +19,7 @@
     'Malgun Gothic', sans-serif;
   --font-serif: 'Gowun Batang', 'Nanum Myeongjo', serif;
   --font-display: 'Cormorant Garamond', 'Gowun Batang', serif;
+  --font-script: var(--font-display);
 
   --page-width: 440px;
   --gutter: 28px;
@@ -137,11 +140,11 @@ p {
 .btn--primary {
   border-color: var(--color-accent);
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
 }
 
 .btn--primary:active {
-  background: #96806a;
+  background: var(--color-accent-strong);
 }
 
 .btn--block {
@@ -234,7 +237,7 @@ textarea.input {
 .segmented__option input:checked + span {
   border-color: var(--color-accent);
   background: var(--color-accent-soft);
-  color: #7a6450;
+  color: var(--color-accent-strong);
   font-weight: 600;
 }
 

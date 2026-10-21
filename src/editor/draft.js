@@ -2,6 +2,7 @@
 // 사진처럼 파일로 관리하는 값(cover.image, gallery)만 빠져 있다.
 import { kstParts, formatKoreanDate, formatKoreanTime } from '../lib/date.js'
 import { orderedHosts } from '../lib/hosts.js'
+import { DEFAULT_THEME } from '../themes/index.js'
 
 const STORAGE_KEY = 'wedding-editor:draft'
 
@@ -47,6 +48,7 @@ const accountRows = (self) =>
 // 빈 양식. 음악·공유 이미지·배포 주소처럼 화면에서 고치지 않는 값은 지금 설정에서 가져온다.
 export function blankDraft(base) {
   return {
+    theme: DEFAULT_THEME,
     hostOrder: 'groom-first',
     groom: person('아들'),
     bride: person('딸'),

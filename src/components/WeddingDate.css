@@ -55,7 +55,7 @@
 
 .calendar__table td.is-wedding span {
   background: var(--color-accent);
-  color: #fff;
+  color: var(--color-on-accent);
   font-weight: 600;
 }
 

@@ -632,6 +632,168 @@ button {
   color: var(--ed-primary);
 }
 
+/* ---------- 디자인 선택 ---------- */
+
+.ed-themes {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.ed-theme {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 10px 14px;
+  border: 1.5px solid var(--ed-line);
+  border-radius: 14px;
+  background: var(--ed-surface);
+  text-align: left;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.ed-theme.is-active {
+  border-color: var(--ed-primary);
+  box-shadow: 0 0 0 3px var(--ed-primary-soft);
+}
+
+.ed-theme.is-active::after {
+  content: '✓';
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--ed-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* 카드 안의 작은 표지 미리보기: 템플릿마다 표지 구성을 흉내 낸다 */
+.ed-theme__thumb {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 6px;
+  padding: 12px 12px 10px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: 8px;
+  background: var(--t-bg);
+  color: var(--t-text);
+  aspect-ratio: 3 / 4;
+}
+
+.ed-theme__date {
+  font-family: var(--t-display);
+  font-size: 15px;
+  line-height: 1.2;
+}
+
+.ed-theme__photo {
+  flex: 1;
+  width: 80%;
+  margin: 8px 0;
+  background: linear-gradient(135deg, var(--t-soft), var(--t-accent));
+  opacity: 0.85;
+}
+
+.ed-theme__names {
+  max-width: 100%;
+  overflow: hidden;
+  font-family: var(--t-font);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-theme__thumb--arch .ed-theme__photo {
+  border-radius: 999px 999px 0 0;
+}
+
+.ed-theme__thumb--frame .ed-theme__date {
+  color: var(--t-accent);
+  font-size: 17px;
+}
+
+.ed-theme__thumb--frame .ed-theme__photo {
+  width: 72%;
+  outline: 1px solid var(--t-accent);
+  outline-offset: 3px;
+}
+
+.ed-theme__thumb--full {
+  justify-content: flex-end;
+  padding: 0 8px 12px;
+  color: #f6f1e7;
+}
+
+.ed-theme__thumb--full .ed-theme__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background: linear-gradient(to bottom, #8a8274 0%, #3a362f 55%, #121317 100%);
+  opacity: 1;
+}
+
+.ed-theme__thumb--full .ed-theme__names,
+.ed-theme__thumb--full .ed-theme__date {
+  position: relative;
+}
+
+.ed-theme__thumb--full .ed-theme__names {
+  font-size: 11px;
+}
+
+.ed-theme__thumb--full .ed-theme__date {
+  order: 2;
+  margin-top: 4px;
+  color: var(--t-accent);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+}
+
+.ed-theme__thumb--type {
+  align-items: flex-start;
+}
+
+.ed-theme__thumb--type .ed-theme__date {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.ed-theme__thumb--type .ed-theme__photo {
+  flex: none;
+  width: 82%;
+  aspect-ratio: 1;
+  box-shadow: 6px 6px 0 var(--t-soft);
+}
+
+.ed-theme__thumb--type .ed-theme__names {
+  margin-top: auto;
+  font-weight: 800;
+}
+
+.ed-theme__name {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.ed-theme__desc {
+  color: var(--ed-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
 /* ---------- 예식장 검색 ---------- */
 
 .ed-search__bar {

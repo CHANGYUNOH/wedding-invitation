@@ -1,6 +1,7 @@
 // 입력 내용을 src/config/wedding.js 파일 내용으로 바꾼다.
 // 사진(cover.image, gallery)은 npm run photos 결과를 그대로 쓰도록 import 줄을 유지한다.
 import { finalize } from './draft.js'
+import { THEMES } from '../themes/index.js'
 
 const INDENT = '  '
 const MAX_INLINE = 100
@@ -50,6 +51,8 @@ export function toWeddingJs(draft, now = new Date()) {
     "import { photos } from './photos.generated.js'",
     '',
     'export const wedding = {',
+    `  // 디자인 템플릿: ${THEMES.map((t) => `'${t.id}'(${t.name})`).join(', ')}`,
+    field('theme', d.theme),
     "  // 이름 표기 순서: 'groom-first'(신랑 먼저) 또는 'bride-first'(신부 먼저)",
     field('hostOrder', d.hostOrder),
     '  // 돌아가신 부모님은 fatherDeceased·motherDeceased 를 true 로 두면 이름 앞에 故 가 붙습니다.',
