@@ -52,6 +52,17 @@ function setup() {
   console.log(`준비 완료. 응답이 쌓일 시트: ${ss.getUrl()}`)
 }
 
+// 문제 확인용: 지금 스크립트를 실행하는 구글 계정과 연결된 시트를 실행 로그에 보여준다.
+function check() {
+  console.log(`실행 계정: ${Session.getEffectiveUser().getEmail() || '(확인 불가)'}`)
+  const active = SpreadsheetApp.getActiveSpreadsheet()
+  console.log(
+    active
+      ? `연결된 시트: ${active.getName()} (${active.getUrl()})`
+      : '연결된 시트: 없음 — 시트 밖(script.google.com)에서 만든 스크립트입니다. 시트의 확장 프로그램 > Apps Script 에서 열어주세요.',
+  )
+}
+
 // 시트 메뉴에서 연 스크립트면 그 시트, 따로 만든 스크립트면 setup 이 만든 시트를 쓴다.
 function spreadsheet() {
   const active = SpreadsheetApp.getActiveSpreadsheet()
