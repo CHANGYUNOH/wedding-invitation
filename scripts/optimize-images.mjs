@@ -8,14 +8,15 @@
 // 갤러리 순서는 파일 이름순입니다 (01_xxx.jpg, 02_xxx.jpg 처럼 숫자를 붙이면 편합니다).
 // 사진의 촬영 위치(GPS) 등 메타데이터는 모두 제거됩니다.
 // photos/ 폴더가 없으면(예: Vercel 빌드) 아무것도 하지 않고 기존 결과물을 그대로 씁니다.
+// 다른 폴더의 사진을 쓰려면 PHOTOS_DIR=폴더경로 npm run photos 처럼 실행합니다.
 
 import sharp from 'sharp'
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
-import { extname, join, relative } from 'node:path'
+import { extname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
-const SRC_DIR = join(ROOT, 'photos')
+const SRC_DIR = process.env.PHOTOS_DIR ? resolve(process.env.PHOTOS_DIR) : join(ROOT, 'photos')
 const OUT_DIR = join(ROOT, 'public', 'images')
 const MANIFEST = join(ROOT, 'src', 'config', 'photos.generated.js')
 const CACHE = join(SRC_DIR, '.cache.json')

@@ -187,9 +187,10 @@
   color: #f6f1e7;
 }
 
+/* 사진은 위쪽 80%만 채우고 아래는 배경색으로 이어져, 글자가 사진 속 인물을 덮지 않게 한다 */
 .cover__bg {
   position: absolute;
-  inset: 0;
+  inset: 0 0 20% 0;
   margin: 0;
   background: var(--color-bg-soft);
 }
@@ -208,9 +209,9 @@
   background: linear-gradient(
     to bottom,
     rgba(10, 11, 14, 0.2) 0%,
-    rgba(10, 11, 14, 0) 30%,
-    rgba(10, 11, 14, 0.55) 62%,
-    rgba(10, 11, 14, 0.94) 100%
+    rgba(10, 11, 14, 0) 28%,
+    rgba(10, 11, 14, 0.3) 52%,
+    var(--color-bg) 80%
   );
 }
 
