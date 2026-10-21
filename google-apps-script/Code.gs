@@ -25,7 +25,16 @@ const MAX_HEADCOUNT = 10
 function setup() {
   let ss = spreadsheet()
   if (!ss) {
-    ss = SpreadsheetApp.create('청첩장 응답')
+    try {
+      ss = SpreadsheetApp.create('청첩장 응답')
+    } catch (err) {
+      // 여러 구글 계정에 동시에 로그인했거나, 회사(Workspace) 계정 정책으로 파일 생성이 막힌 경우
+      throw new Error(
+        `새 시트를 만들 권한이 없습니다 (${err.message}). ` +
+          '개인 Gmail 계정 하나로만 로그인한 창(시크릿 창 등)에서 구글 시트를 직접 만들고, ' +
+          '그 시트의 확장 프로그램 > Apps Script 에 코드를 붙여넣어 setup 을 실행해주세요.',
+      )
+    }
     PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', ss.getId())
   }
   ss.setSpreadsheetTimeZone('Asia/Seoul')
