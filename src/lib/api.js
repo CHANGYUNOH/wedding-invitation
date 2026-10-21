@@ -1,21 +1,35 @@
-const url = import.meta.env.VITE_SUPABASE_URL
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+// RSVP·방명록은 구글 시트(Apps Script 웹 앱)에 저장한다. 설정 방법은 README의 "구글 시트 설정" 참고.
+const API_URL = import.meta.env.VITE_SHEETS_API_URL
+const TIMEOUT_MS = 20_000
 
-// Supabase 키가 없으면 브라우저 localStorage에 저장한다 (로컬 개발·미리보기용).
-export const isLocalMode = !(url && anonKey)
-
-// 첫 화면 로딩을 가볍게 하려고 Supabase 클라이언트는 필요할 때 따로 불러온다.
-let clientPromise = null
-function getSupabase() {
-  if (isLocalMode) return null
-  clientPromise ??= import('@supabase/supabase-js').then(({ createClient }) =>
-    createClient(url, anonKey, { auth: { persistSession: false } }),
-  )
-  return clientPromise
-}
+// 개발 중(npm run dev)에 주소가 없으면 브라우저 localStorage에 저장한다.
+// 배포 빌드에서 주소가 빠졌다면 하객의 글이 각자 휴대폰에만 남지 않도록 오류로 드러낸다.
+export const isLocalMode = !API_URL && import.meta.env.DEV
 
 if (isLocalMode) {
-  console.info('[wedding] Supabase 설정이 없어 RSVP·방명록을 localStorage에 저장합니다.')
+  console.info('[wedding] 구글 시트 주소(VITE_SHEETS_API_URL)가 없어 RSVP·방명록을 localStorage에 저장합니다.')
+}
+
+// GET은 query로, POST는 body로 보낸다. Content-Type을 지정하지 않으면 text/plain으로 보내져
+// CORS 사전 요청(preflight) 없이 Apps Script에 닿는다.
+async function request({ query, body }) {
+  if (!API_URL) throw new Error('VITE_SHEETS_API_URL 이 설정되지 않았습니다.')
+  const url = new URL(API_URL)
+  Object.entries(query ?? {}).forEach(([k, v]) => url.searchParams.set(k, v))
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
+  try {
+    const res = await fetch(url, {
+      method: body ? 'POST' : 'GET',
+      body: body ? JSON.stringify(body) : undefined,
+      signal: controller.signal,
+    })
+    const data = await res.json()
+    if (!data.ok) throw new Error(data.error || '요청에 실패했습니다.')
+    return data
+  } finally {
+    clearTimeout(timer)
+  }
 }
 
 const local = {
@@ -36,11 +50,9 @@ const local = {
 }
 
 export async function submitRsvp({ side, name, attending, headcount, meal }) {
-  const supabase = await getSupabase()
   const row = { side, name: name.trim(), attending, headcount, meal }
-  if (supabase) {
-    const { error } = await supabase.from('rsvp').insert(row)
-    if (error) throw error
+  if (!isLocalMode) {
+    await request({ body: { action: 'rsvp', ...row } })
     return
   }
   local.write('rsvp', [...local.read('rsvp'), { ...row, id: Date.now(), created_at: new Date().toISOString() }])
@@ -48,15 +60,9 @@ export async function submitRsvp({ side, name, attending, headcount, meal }) {
 
 // 최신순으로 limit개를 가져오고, 다음 페이지가 있는지 함께 알려준다.
 export async function fetchGuestbook({ offset, limit }) {
-  const supabase = await getSupabase()
-  if (supabase) {
-    const { data, error } = await supabase
-      .from('guestbook')
-      .select('id, name, message, created_at')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit)
-    if (error) throw error
-    return { items: data.slice(0, limit), hasMore: data.length > limit }
+  if (!isLocalMode) {
+    const { items, hasMore } = await request({ query: { action: 'guestbook', offset, limit } })
+    return { items, hasMore }
   }
   const rows = local
     .read('guestbook')
@@ -66,14 +72,8 @@ export async function fetchGuestbook({ offset, limit }) {
 }
 
 export async function addGuestbook({ name, message, password }) {
-  const supabase = await getSupabase()
-  if (supabase) {
-    const { error } = await supabase.rpc('add_guestbook', {
-      p_name: name.trim(),
-      p_message: message.trim(),
-      p_password: password,
-    })
-    if (error) throw error
+  if (!isLocalMode) {
+    await request({ body: { action: 'addGuestbook', name: name.trim(), message: message.trim(), password } })
     return
   }
   const row = {
@@ -88,11 +88,9 @@ export async function addGuestbook({ name, message, password }) {
 
 // 비밀번호가 맞으면 true, 틀리면 false
 export async function deleteGuestbook({ id, password }) {
-  const supabase = await getSupabase()
-  if (supabase) {
-    const { data, error } = await supabase.rpc('delete_guestbook', { p_id: id, p_password: password })
-    if (error) throw error
-    return data === true
+  if (!isLocalMode) {
+    const { deleted } = await request({ body: { action: 'deleteGuestbook', id, password } })
+    return deleted === true
   }
   const rows = local.read('guestbook')
   const target = rows.find((r) => r.id === id)
