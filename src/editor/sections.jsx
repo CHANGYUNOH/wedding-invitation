@@ -1,11 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { orderedHosts, parentName } from '../lib/hosts.js'
 import { kstParts, formatKoreanDate, formatKoreanTime } from '../lib/date.js'
 import { hasKakaoKey, getKakaoMaps } from '../lib/kakao.js'
 import { asset } from '../lib/asset.js'
 import { THEMES } from '../themes/index.js'
+import { BGM_PRESETS, formatDuration } from '../music/presets.js'
 import { ensureThemeFonts } from '../lib/theme-fonts.js'
-import { addPhotos, removePhoto } from './photos.js'
+import { addAudio, addPhotos, removeMedia, MAX_AUDIO_SIZE_MB } from './media.js'
 import { toast } from '../components/Toast.jsx'
 import { GREETING_TEMPLATES, autoShareText, hasCoords, isValidDatetime, shortNameOf } from './draft.js'
 import { Check, CloseIcon, Datalist, Field, IconButton, PlusIcon, Row, Section, TextArea, TextInput } from './ui.jsx'
@@ -516,8 +517,8 @@ export function ShareSection({ draft, set, done }) {
 
 const MAX_GALLERY = 30
 
-// 눌러서 고르거나, PC에서는 사진을 끌어다 놓을 수 있는 영역
-function PhotoPicker({ multiple = false, onFiles, className = '', children }) {
+// 눌러서 고르거나, PC에서는 파일을 끌어다 놓을 수 있는 영역 (사진·음악 공용)
+function FilePicker({ accept = 'image/*', multiple = false, onFiles, className = '', children }) {
   const [over, setOver] = useState(false)
   return (
     <label
@@ -535,7 +536,7 @@ function PhotoPicker({ multiple = false, onFiles, className = '', children }) {
     >
       <input
         type="file"
-        accept="image/*"
+        accept={accept}
         multiple={multiple}
         className="ed-sr-only"
         onChange={(e) => {
@@ -562,7 +563,7 @@ export function PhotoSection({ draft, set, done, urls }) {
     const { ids, failed, persistent } = await addPhotos(picked, (n, total) => setBusy(`사진을 준비하고 있어요… ${n}/${total}`))
     setBusy('')
     if (target === 'cover' && ids[0]) {
-      if (cover) removePhoto(cover)
+      if (cover) removeMedia(cover)
       set('photos.cover', ids[0])
     }
     if (target === 'gallery' && ids.length) set('photos.gallery', (list) => [...list, ...ids])
@@ -579,16 +580,16 @@ export function PhotoSection({ draft, set, done, urls }) {
       return next
     })
   const drop = (id) => {
-    removePhoto(id)
+    removeMedia(id)
     set('photos.gallery', (list) => list.filter((x) => x !== id))
   }
   const dropAll = () => {
     if (!window.confirm('갤러리 사진을 모두 지울까요?')) return
-    gallery.forEach(removePhoto)
+    gallery.forEach(removeMedia)
     set('photos.gallery', [])
   }
   const dropCover = () => {
-    removePhoto(cover)
+    removeMedia(cover)
     set('photos.cover', null)
   }
 
@@ -606,20 +607,20 @@ export function PhotoSection({ draft, set, done, urls }) {
           <div className="ed-cover-photo">
             {urls[cover] ? <img src={urls[cover]} alt="표지 사진" /> : <span className="ed-photo__loading" />}
             <div className="ed-cover-photo__actions">
-              <PhotoPicker onFiles={(files) => attach(files, 'cover')} className="ed-btn">
+              <FilePicker onFiles={(files) => attach(files, 'cover')} className="ed-btn">
                 바꾸기
-              </PhotoPicker>
+              </FilePicker>
               <button type="button" className="ed-btn" onClick={dropCover}>
                 삭제
               </button>
             </div>
           </div>
         ) : (
-          <PhotoPicker onFiles={(files) => attach(files, 'cover')} className="ed-photo-drop">
+          <FilePicker onFiles={(files) => attach(files, 'cover')} className="ed-photo-drop">
             <PlusIcon />
             표지 사진 고르기
             <small>눌러서 고르거나 사진을 끌어다 놓으세요</small>
-          </PhotoPicker>
+          </FilePicker>
         )}
       </Field>
 
@@ -651,10 +652,10 @@ export function PhotoSection({ draft, set, done, urls }) {
             </div>
           ))}
           {gallery.length < MAX_GALLERY && (
-            <PhotoPicker multiple onFiles={(files) => attach(files, 'gallery')} className="ed-photo ed-photo--add">
+            <FilePicker multiple onFiles={(files) => attach(files, 'gallery')} className="ed-photo ed-photo--add">
               <PlusIcon />
               사진 추가
-            </PhotoPicker>
+            </FilePicker>
           )}
         </div>
         {gallery.length > 1 && (
@@ -678,6 +679,180 @@ export function PhotoSection({ draft, set, done, urls }) {
         <li>
           <b>배경음악</b>을 넣고 싶다면 mp3 파일을 개발자에게 따로 전달해주세요.
         </li>
+      </ul>
+    </Section>
+  )
+}
+
+// ---------- 배경음악 ----------
+
+// 미리듣기는 한 번에 한 곡만 재생한다.
+function usePreviewPlayer() {
+  const ref = useRef(null)
+  const [playing, setPlaying] = useState(null)
+
+  useEffect(() => () => ref.current?.pause(), [])
+
+  const stop = () => {
+    ref.current?.pause()
+    setPlaying(null)
+  }
+  const toggle = (src) => {
+    if (playing === src) return stop()
+    ref.current ??= new Audio()
+    const audio = ref.current
+    audio.pause()
+    audio.src = src
+    audio.onended = () => setPlaying(null)
+    audio.play().then(
+      () => setPlaying(src),
+      () => toast('재생하지 못했어요.'),
+    )
+  }
+  return { playing, toggle, stop }
+}
+
+const PlayIcon = ({ playing }) =>
+  playing ? (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <rect x="6" y="5" width="4" height="14" rx="1" fill="currentColor" />
+      <rect x="14" y="5" width="4" height="14" rx="1" fill="currentColor" />
+    </svg>
+  ) : (
+    <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true">
+      <path d="M8 5.5v13l10.5-6.5z" fill="currentColor" />
+    </svg>
+  )
+
+function MusicOption({ checked, disabled = false, onSelect, title, sub, badge, play, children }) {
+  return (
+    <div
+      role="radio"
+      aria-checked={checked}
+      aria-disabled={disabled}
+      tabIndex={disabled ? -1 : 0}
+      className={`ed-music__option${checked ? ' is-checked' : ''}${disabled ? ' is-disabled' : ''}`}
+      onClick={() => !disabled && onSelect()}
+      onKeyDown={(e) => {
+        if (!disabled && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
+    >
+      <span className="ed-music__dot" aria-hidden="true" />
+      <span className="ed-music__text">
+        <strong>
+          {title}
+          {badge && <em>{badge}</em>}
+        </strong>
+        {sub && <small>{sub}</small>}
+        {children}
+      </span>
+      {play && (
+        <button
+          type="button"
+          className={`ed-music__play${play.playing ? ' is-playing' : ''}`}
+          aria-label={play.playing ? `${title} 멈추기` : `${title} 미리듣기`}
+          onClick={(e) => {
+            e.stopPropagation()
+            play.onClick()
+          }}
+        >
+          <PlayIcon playing={play.playing} />
+        </button>
+      )}
+    </div>
+  )
+}
+
+export function MusicSection({ draft, set, done, urls }) {
+  const player = usePreviewPlayer()
+  const [busy, setBusy] = useState(false)
+  const { bgm, bgmFile } = draft
+  // 기본 제공 곡이 아닌 경로가 이미 설정돼 있으면(예: audio/bgm.mp3) 그대로 고를 수 있게 보여준다.
+  const customPath = bgm && bgm !== 'upload' && !BGM_PRESETS.some((p) => p.path === bgm) ? bgm : null
+  const playOf = (src) => (src ? { playing: player.playing === src, onClick: () => player.toggle(src) } : null)
+
+  const attach = async (files) => {
+    const file = files[0]
+    if (!file) return
+    setBusy(true)
+    try {
+      const { file: info, persistent } = await addAudio(file)
+      player.stop()
+      if (bgmFile) removeMedia(bgmFile.id)
+      set('bgmFile', info)
+      set('bgm', 'upload')
+      if (!persistent) toast('이 브라우저에서는 음악이 임시 저장되지 않아요. 새로고침하면 다시 골라야 해요.')
+    } catch (err) {
+      toast(
+        err.message === 'size'
+          ? `음악 파일은 ${MAX_AUDIO_SIZE_MB}MB 이하로 넣어주세요.`
+          : '재생할 수 없는 파일이에요. mp3나 m4a 파일을 넣어주세요.',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const removeFile = () => {
+    player.stop()
+    removeMedia(bgmFile.id)
+    set('bgmFile', null)
+    if (bgm === 'upload') set('bgm', '')
+  }
+
+  return (
+    <Section
+      id="music"
+      emoji="🎵"
+      title="배경음악"
+      desc="청첩장에 흐를 음악을 골라주세요. ▶를 누르면 미리 들어볼 수 있어요."
+      done={done}
+      optional
+    >
+      <div className="ed-music" role="radiogroup" aria-label="배경음악">
+        <MusicOption checked={!bgm} onSelect={() => set('bgm', '')} title="음악 없음" sub="음악 버튼이 보이지 않아요" />
+        {BGM_PRESETS.map((p) => (
+          <MusicOption
+            key={p.id}
+            checked={bgm === p.path}
+            onSelect={() => set('bgm', p.path)}
+            title={p.title}
+            badge={p.mood}
+            sub={`${p.credit} · ${formatDuration(p.duration)}`}
+            play={playOf(asset(p.path))}
+          />
+        ))}
+        {customPath && (
+          <MusicOption checked onSelect={() => {}} title="지금 청첩장 음악" sub={customPath} play={playOf(asset(customPath))} />
+        )}
+        <MusicOption
+          checked={bgm === 'upload'}
+          disabled={!bgmFile}
+          onSelect={() => set('bgm', 'upload')}
+          title={bgmFile ? bgmFile.name : '직접 첨부한 음악'}
+          sub={bgmFile ? `첨부한 파일 · ${formatDuration(bgmFile.duration)}` : `mp3·m4a 파일, ${MAX_AUDIO_SIZE_MB}MB 이하`}
+          play={bgmFile ? playOf(urls[bgmFile.id]) : null}
+        >
+          <span className="ed-music__actions" onClick={(e) => e.stopPropagation()}>
+            <FilePicker accept="audio/*,.mp3,.m4a,.aac" onFiles={attach} className="ed-btn ed-btn--sm">
+              {busy ? '확인 중…' : bgmFile ? '다른 파일로 바꾸기' : '음악 파일 고르기'}
+            </FilePicker>
+            {bgmFile && (
+              <button type="button" className="ed-btn ed-btn--sm" onClick={removeFile}>
+                삭제
+              </button>
+            )}
+          </span>
+        </MusicOption>
+      </div>
+
+      <ul className="ed-notes">
+        <li>휴대폰은 자동 재생을 막기 때문에, 하객이 청첩장 오른쪽 위 음악 버튼을 누르면 재생돼요.</li>
+        <li>음악은 끝나면 처음부터 다시 반복돼요.</li>
+        <li>아이폰에서는 ‘파일’ 앱에 저장된 음악만 고를 수 있어요. 직접 첨부할 때는 사용 권한이 있는 음악인지 확인해주세요.</li>
       </ul>
     </Section>
   )

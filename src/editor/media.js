@@ -1,15 +1,17 @@
-// 편집 페이지에서 첨부한 사진: 브라우저에서 줄이고(촬영 위치 등 메타데이터 제거),
-// IndexedDB에 보관해 새로고침해도 남게 한다. 입력 내용(draft)에는 사진 id만 저장한다.
+// 편집 페이지에서 첨부한 사진·음악 파일을 IndexedDB에 보관해 새로고침해도 남게 한다.
+// 사진은 브라우저에서 줄이고(촬영 위치 등 메타데이터 제거), 음악은 그대로 보관한다.
+// 입력 내용(draft)에는 파일 id만 저장한다.
 import { useEffect, useState } from 'react'
 
 const MAX_SIDE = 2400 // 원본 보관용. 실제 청첩장에는 npm run photos 가 다시 줄여 넣는다.
 const QUALITY = 0.9
 const DB_NAME = 'wedding-editor'
-const STORE = 'photos'
+const STORE = 'photos' // 예전에 저장한 사진을 그대로 읽도록 이름을 유지한다
+const MAX_AUDIO_MB = 15
 
 const cache = new Map() // id → { blob, url }
 const listeners = new Set()
-let persistent = true // IndexedDB를 쓸 수 없으면 false (새로고침하면 사진이 사라짐)
+let persistent = true // IndexedDB를 쓸 수 없으면 false (새로고침하면 첨부 파일이 사라짐)
 
 const notify = () => listeners.forEach((fn) => fn())
 
@@ -75,6 +77,40 @@ async function shrink(file) {
   }
 }
 
+// ---------- 음악 ----------
+
+// 브라우저가 재생할 수 있는 음악인지 확인하고 길이(초)를 잰다.
+function probeAudio(file) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file)
+    const audio = new Audio()
+    const done = (fn) => (value) => {
+      URL.revokeObjectURL(url)
+      clearTimeout(timer)
+      fn(value)
+    }
+    const timer = setTimeout(done(reject), 10000, new Error('unsupported'))
+    audio.onloadedmetadata = () => done(resolve)(audio.duration)
+    audio.onerror = () => done(reject)(new Error('unsupported'))
+    audio.preload = 'metadata'
+    audio.src = url
+  })
+}
+
+// 음악 파일을 보관한다. 너무 크거나(size) 재생할 수 없으면(unsupported) 오류를 던진다.
+export async function addAudio(file) {
+  if (file.size > MAX_AUDIO_MB * 1024 * 1024) throw new Error('size')
+  const duration = await probeAudio(file)
+  const ext = (file.name.match(/.([a-z0-9]{2,4})$/i)?.[1] ?? 'mp3').toLowerCase()
+  const blob = file.slice(0, file.size, file.type || 'audio/mpeg')
+  const id = crypto.randomUUID()
+  cache.set(id, { blob, url: URL.createObjectURL(blob) })
+  await persist(id, blob)
+  notify()
+  return { file: { id, name: file.name, ext, duration: Math.round(duration) }, persistent }
+}
+export const MAX_AUDIO_SIZE_MB = MAX_AUDIO_MB
+
 // ---------- 공개 함수 ----------
 
 // 파일들을 줄여 보관하고 새 id 목록을 돌려준다. 열 수 없는 파일(예: PC의 HEIC)은 failed 에 담긴다.
@@ -98,7 +134,7 @@ export async function addPhotos(files, onProgress) {
   return { ids, failed, persistent }
 }
 
-export async function removePhoto(id) {
+export async function removeMedia(id) {
   const item = cache.get(id)
   if (item) URL.revokeObjectURL(item.url)
   cache.delete(id)
@@ -110,7 +146,7 @@ export async function removePhoto(id) {
   }
 }
 
-export async function clearPhotos() {
+export async function clearMedia() {
   cache.forEach(({ url }) => URL.revokeObjectURL(url))
   cache.clear()
   notify()
@@ -121,11 +157,11 @@ export async function clearPhotos() {
   }
 }
 
-export const photoBlob = (id) => cache.get(id)?.blob ?? null
+export const mediaBlob = (id) => cache.get(id)?.blob ?? null
 export const isPersistent = () => persistent
 
-// 보관된 사진을 불러와 미리보기용 주소(blob:)를 만든다.
-export async function loadPhotos(ids) {
+// 보관된 파일을 불러와 미리보기용 주소(blob:)를 만든다.
+export async function loadMedia(ids) {
   const missing = ids.filter((id) => !cache.has(id))
   if (!missing.length) return
   for (const id of missing) {
@@ -139,8 +175,8 @@ export async function loadPhotos(ids) {
   notify()
 }
 
-// ids 에 해당하는 사진 주소 { id: url } 를 돌려주고, 사진이 바뀌면 다시 그린다.
-export function usePhotoUrls(ids) {
+// ids 에 해당하는 파일 주소 { id: url } 를 돌려주고, 파일이 바뀌면 다시 그린다.
+export function useMediaUrls(ids) {
   const [, setTick] = useState(0)
   const key = ids.join(',')
 
@@ -151,7 +187,7 @@ export function usePhotoUrls(ids) {
   }, [])
 
   useEffect(() => {
-    loadPhotos(key ? key.split(',') : [])
+    loadMedia(key ? key.split(',') : [])
   }, [key])
 
   return Object.fromEntries(ids.filter((id) => cache.has(id)).map((id) => [id, cache.get(id).url]))

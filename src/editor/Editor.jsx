@@ -5,7 +5,7 @@ import { Toaster, toast } from '../components/Toast.jsx'
 import { blankDraft, checklist, clearDraft, draftFromConfig, loadDraft, saveDraft, toPreviewConfig } from './draft.js'
 import { toWeddingJs } from './exportConfig.js'
 import PreviewFrame from './Preview.jsx'
-import { clearPhotos, usePhotoUrls } from './photos.js'
+import { clearMedia, useMediaUrls } from './media.js'
 import { CloseIcon, Connector, PlusIcon } from './ui.jsx'
 import {
   AccountSection,
@@ -14,6 +14,7 @@ import {
   FamilySection,
   GreetingSection,
   HostSection,
+  MusicSection,
   PhotoSection,
   ShareSection,
   TransportSection,
@@ -44,6 +45,7 @@ const SECTIONS = [
   { id: 'ceremony', label: '예식', Component: CeremonySection, required: true },
   { id: 'greeting', label: '인사말', Component: GreetingSection },
   { id: 'photos', label: '사진', Component: PhotoSection },
+  { id: 'music', label: '음악', Component: MusicSection },
   { id: 'transport', label: '오시는 길', Component: TransportSection },
   { id: 'account', label: '계좌', Component: AccountSection },
   { id: 'share', label: '공유', Component: ShareSection },
@@ -62,6 +64,8 @@ function sectionDone(id, draft, checks) {
       return checks.filter((c) => c.id === 'ceremony' && c.required).every((c) => c.ok)
     case 'greeting':
       return Boolean(draft.greeting.title.trim() && draft.greeting.message.join('').trim())
+    case 'music':
+      return checks.find((c) => c.id === 'music').ok
     case 'photos':
       return Boolean(draft.photos.cover || draft.photos.gallery.length)
     case 'transport':
@@ -126,12 +130,15 @@ function saveFile(blob, name) {
 function Finish({ draft, checks, onReset }) {
   const missing = checks.filter((c) => c.required && !c.ok)
   const photoCount = (draft.photos.cover ? 1 : 0) + draft.photos.gallery.length
+  const hasMusic = draft.bgm === 'upload' && Boolean(draft.bgmFile)
+  // 첨부 파일 설명: '사진 3장 + 음악'
+  const filesLabel = [photoCount && `사진 ${photoCount}장`, hasMusic && '음악'].filter(Boolean).join(' + ')
   const [packing, setPacking] = useState(false)
 
   // 사진이 있으면 wedding.js 와 사진을 ZIP 하나로, 없으면 wedding.js 만 내려받는다.
   const download = async () => {
     if (missing.length && !window.confirm(`${missing.map((c) => c.label).join(', ')}이(가) 비어 있어요. 그래도 내보낼까요?`)) return
-    if (!photoCount) {
+    if (!filesLabel) {
       saveFile(new Blob([toWeddingJs(draft)], { type: 'text/javascript;charset=utf-8' }), 'wedding.js')
       toast('wedding.js 파일을 내려받았어요.')
       return
@@ -140,7 +147,7 @@ function Finish({ draft, checks, onReset }) {
     try {
       const { buildPackage, packageName } = await import('./package.js')
       saveFile(await buildPackage(draft), packageName())
-      toast(`입력 내용과 사진 ${photoCount}장을 압축 파일로 내려받았어요.`)
+      toast(`입력 내용과 ${filesLabel}을 압축 파일로 내려받았어요.`)
     } catch (err) {
       console.error(err)
       toast('압축 파일을 만들지 못했어요. 잠시 후 다시 시도해주세요.')
@@ -152,7 +159,7 @@ function Finish({ draft, checks, onReset }) {
   const copy = async () => {
     const ok = await copyText(toWeddingJs(draft))
     if (!ok) toast('복사하지 못했어요. 파일 내려받기를 이용해주세요.')
-    else toast(photoCount ? '입력 내용을 복사했어요. 사진은 복사되지 않으니 내려받기를 이용해주세요.' : '내용을 복사했어요. 메신저에 붙여넣어 전달해도 돼요.')
+    else toast(filesLabel ? `입력 내용을 복사했어요. ${filesLabel}은 복사되지 않으니 내려받기를 이용해주세요.` : '내용을 복사했어요. 메신저에 붙여넣어 전달해도 돼요.')
   }
 
   return (
@@ -179,7 +186,7 @@ function Finish({ draft, checks, onReset }) {
 
       <div className="ed-finish__actions">
         <button type="button" className="ed-btn ed-btn--primary ed-btn--lg" onClick={download} disabled={packing}>
-          {packing ? '압축 파일 만드는 중…' : photoCount ? `내려받기 (입력 내용 + 사진 ${photoCount}장, .zip)` : 'wedding.js 내려받기'}
+          {packing ? '압축 파일 만드는 중…' : filesLabel ? `내려받기 (입력 내용 + ${filesLabel}, .zip)` : 'wedding.js 내려받기'}
         </button>
         <button type="button" className="ed-btn ed-btn--lg" onClick={copy}>
           입력 내용 복사하기
@@ -245,21 +252,21 @@ export default function Editor() {
   }, [previewOpen])
 
   const set = useCallback((path, value) => setDraft((d) => setIn(d, path, value)), [])
-  const photoUrls = usePhotoUrls(draft ? [draft.photos.cover, ...draft.photos.gallery].filter(Boolean) : [])
+  const photoUrls = useMediaUrls(draft ? [draft.photos.cover, ...draft.photos.gallery, draft.bgmFile?.id].filter(Boolean) : [])
   // 사진 주소 객체는 매번 새로 만들어지므로, 내용(photoKey)이 바뀔 때만 미리보기를 다시 계산한다.
   const photoKey = JSON.stringify(photoUrls)
   const previewConfig = useMemo(() => draft && toPreviewConfig(draft, currentConfig, photoUrls), [draft, photoKey])
   const checks = useMemo(() => draft && checklist(draft), [draft])
 
   const start = (next) => {
-    clearPhotos() // 예전에 첨부하고 남은 사진 정리
+    clearMedia() // 예전에 첨부하고 남은 사진 정리
     setDraft(next)
     window.scrollTo(0, 0)
   }
   const reset = () => {
     if (!window.confirm('입력한 내용을 모두 지우고 처음으로 돌아갈까요?')) return
     clearDraft()
-    clearPhotos()
+    clearMedia()
     setDraft(null)
     setSavedAt(null)
     window.scrollTo(0, 0)

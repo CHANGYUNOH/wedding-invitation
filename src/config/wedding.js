@@ -95,7 +95,8 @@ export const wedding = {
     ],
   },
 
-  // 파일을 public/audio/ 에 넣고 경로를 적어주세요. 비워두면 음악 버튼이 숨겨집니다.
+  // 배경음악: 기본 제공 곡('audio/presets/canon.mp3', 'ode-to-joy.mp3', 'music-box.mp3', 'warm-piano.mp3')이나
+  // public/audio/ 에 넣은 파일의 경로를 적어주세요. 비워두면 음악 버튼이 숨겨집니다.
   bgm: '',
 
   share: {

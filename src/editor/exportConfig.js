@@ -2,6 +2,7 @@
 // 사진(cover.image, gallery)은 npm run photos 결과를 그대로 쓰도록 import 줄을 유지한다.
 import { finalize } from './draft.js'
 import { THEMES } from '../themes/index.js'
+import { BGM_PRESETS } from '../music/presets.js'
 
 const INDENT = '  '
 const MAX_INLINE = 100
@@ -77,7 +78,8 @@ export function toWeddingJs(draft, now = new Date()) {
     '  // kakaopay: 카카오페이 송금 링크가 있으면 버튼이 함께 표시됩니다.',
     field('accounts', d.accounts),
     '',
-    '  // 파일을 public/audio/ 에 넣고 경로를 적어주세요. 비워두면 음악 버튼이 숨겨집니다.',
+    `  // 배경음악: 기본 제공 곡(${BGM_PRESETS.map((p) => `'${p.path}'`).join(', ')})이나`,
+    '  // public/audio/ 에 넣은 파일의 경로를 적어주세요. 비워두면 음악 버튼이 숨겨집니다.',
     field('bgm', d.bgm),
     '',
     '  // image: 공유 카드 이미지 (JPG/PNG). 바꾸면 ?v= 뒤 숫자를 올려주세요.',
