@@ -20,6 +20,7 @@
   --font-serif: 'Gowun Batang', 'Nanum Myeongjo', serif;
   --font-display: 'Cormorant Garamond', 'Gowun Batang', serif;
   --font-script: var(--font-display);
+  --font-hand: var(--font-serif);
 
   --page-width: 440px;
   --gutter: 28px;

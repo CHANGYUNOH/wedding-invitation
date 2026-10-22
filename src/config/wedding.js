@@ -4,7 +4,8 @@
 import { photos } from './photos.generated.js'
 
 export const wedding = {
-  // 디자인 템플릿: 'minimal'(미니멀 화이트), 'floral'(로맨틱 플로럴), 'dark'(모던 나이트), 'modern'(볼드 타이포)
+  // 디자인 템플릿: 'minimal'(미니멀 화이트), 'floral'(로맨틱 플로럴), 'dark'(모던 나이트), 'modern'(볼드 타이포),
+  //   'hanok'(전통 한지), 'garden'(보태니컬 가든), 'lavender'(파스텔 라벤더), 'film'(레트로 필름), 'magazine'(에디토리얼 매거진)
   theme: 'minimal',
   // 이름 표기 순서: 'groom-first'(신랑 먼저) 또는 'bride-first'(신부 먼저)
   hostOrder: 'groom-first',

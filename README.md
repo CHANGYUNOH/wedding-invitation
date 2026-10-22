@@ -38,8 +38,13 @@ npm run preview  # 빌드 결과 미리보기
 | `floral` | 로맨틱 플로럴 | 액자형 사진과 모서리 꽃 장식, 필기체, 더스티 로즈 |
 | `dark` | 모던 나이트 | 화면을 채운 사진 위 글자, 짙은 배경과 골드 포인트 |
 | `modern` | 볼드 타이포 | 큰 날짜와 정사각 사진, 굵은 고딕, 테라코타 포인트 |
+| `hanok` | 전통 한지 | 囍와 둥근 사진, 세로로 쓴 이름, 한지 질감과 단청 빛 붉은색 |
+| `garden` | 보태니컬 가든 | 타원 사진과 월계수 화관, 세이지 그린 |
+| `lavender` | 파스텔 라벤더 | 타원 사진과 라벤더 화관, 둥근 글꼴, 하트 장식 |
+| `film` | 레트로 필름 | 테이프 붙인 폴라로이드, 손글씨, 종이 질감과 머스터드 |
+| `magazine` | 에디토리얼 매거진 | 잡지 제호와 사진 위 이름, 흑백에 레드 포인트 |
 
-색·글꼴·섹션 제목 장식은 [src/styles/themes.css](src/styles/themes.css), 템플릿 목록과 표지 구성은 [src/themes/index.js](src/themes/index.js)에 있습니다. 새 템플릿을 추가하려면 `THEMES`에 항목을 넣고 `themes.css`에 `:root[data-theme='새 id']` 색 변수를 정의하면 됩니다. 표지 구성(`cover`)은 기존 `arch`·`frame`·`full`·`type` 중에서 고르거나 [Cover.jsx](src/components/Cover.jsx)에 새로 추가합니다.
+색·글꼴·섹션 제목 장식은 [src/styles/themes.css](src/styles/themes.css), 템플릿 목록과 표지 구성은 [src/themes/index.js](src/themes/index.js)에 있습니다. 새 템플릿을 추가하려면 `THEMES`에 항목을 넣고 `themes.css`에 `:root[data-theme='새 id']` 색 변수를 정의하면 됩니다. 표지 구성(`cover`)은 기존 `arch`·`frame`·`full`·`type`·`circle`·`oval`·`polaroid`·`magazine` 중에서 고르거나 [Cover.jsx](src/components/Cover.jsx)에 새로 추가합니다.
 
 ## 정보 입력 페이지 (`/edit`)
 

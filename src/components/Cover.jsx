@@ -149,7 +149,164 @@ function TypeCover({ wedding, hosts, when, photo, place }) {
   )
 }
 
-const LAYOUTS = { arch: ArchCover, frame: FrameCover, full: FullCover, type: TypeCover }
+// 전통 한지: 囍, 둥근 사진 양옆에 세로로 쓴 이름
+function CircleCover({ wedding, hosts, when, photo, place }) {
+  const [first, second] = hosts
+  return (
+    <header className="cover cover--circle">
+      <p className="cover__seal" aria-hidden="true">
+        囍
+      </p>
+      <p className="cover__caption">{wedding.cover.caption}</p>
+      <h1 className="sr-only">
+        {first.name} · {second.name}
+      </h1>
+      <div className="cover__circle-row">
+        <p className="cover__vname" aria-hidden="true">
+          {first.name}
+        </p>
+        <figure className="cover__circle">{photo}</figure>
+        <p className="cover__vname" aria-hidden="true">
+          {second.name}
+        </p>
+      </div>
+      <p className="cover__info">
+        {formatKoreanDate(when)} {formatKoreanTime(when)}
+        <br />
+        {place}
+      </p>
+      <ScrollHint />
+    </header>
+  )
+}
+
+// 타원을 따라 아래에서 위로 올라가는 두 갈래 잎 가지 (보태니컬·라벤더)
+function Wreath() {
+  const cx = 150
+  const cy = 200
+  const rx = 146
+  const ry = 192
+  const side = []
+  let stem = ''
+  for (let i = 0; i <= 12; i++) {
+    const a = ((96 + i * 11) * Math.PI) / 180
+    const x = cx + rx * Math.cos(a)
+    const y = cy + ry * Math.sin(a)
+    stem += `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`
+    const tangent = (Math.atan2(ry * Math.cos(a), -rx * Math.sin(a)) * 180) / Math.PI
+    const size = 1 - i * 0.035
+    side.push({ x, y, rot: tangent + (i % 2 ? 38 : -38), size })
+  }
+  const branch = (
+    <g>
+      <path d={stem} fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      {side.map((l, i) => (
+        <ellipse
+          key={i}
+          cx={l.x}
+          cy={l.y}
+          rx={14 * l.size}
+          ry={5.5 * l.size}
+          transform={`rotate(${l.rot.toFixed(1)} ${l.x.toFixed(1)} ${l.y.toFixed(1)}) translate(${(11 * l.size).toFixed(1)} 0)`}
+          fill="currentColor"
+          opacity={i % 3 === 0 ? 0.55 : 0.85}
+        />
+      ))}
+    </g>
+  )
+  return (
+    <svg className="cover__wreath" viewBox="0 0 300 400" aria-hidden="true">
+      {branch}
+      <g transform="translate(300 0) scale(-1 1)">{branch}</g>
+    </svg>
+  )
+}
+
+// 보태니컬 가든·파스텔 라벤더: 타원 사진과 잎 화관
+function OvalCover({ wedding, hosts, when, photo, place }) {
+  return (
+    <header className="cover cover--oval">
+      <p className="cover__caption">{wedding.cover.caption}</p>
+      <div className="cover__oval-wrap">
+        <figure className="cover__oval">{photo}</figure>
+        <Wreath />
+      </div>
+      <Names hosts={hosts} joiner="&" />
+      <p className="cover__info">
+        {formatKoreanDate(when)} {formatKoreanTime(when)}
+        <br />
+        {place}
+      </p>
+      <ScrollHint />
+    </header>
+  )
+}
+
+// 레트로 필름: 손글씨 날짜, 테이프 붙인 폴라로이드
+function PolaroidCover({ wedding, hosts, when, photo, place }) {
+  return (
+    <header className="cover cover--polaroid">
+      <p className="cover__hand-date">{formatDotDate(when).replaceAll(' ', '')}</p>
+      <figure className="cover__polaroid">
+        <span className="cover__tape" aria-hidden="true" />
+        <div className="cover__polaroid-photo">{photo}</div>
+        <figcaption>{wedding.cover.caption}</figcaption>
+      </figure>
+      <Names hosts={hosts} joiner="♥" />
+      <p className="cover__info">
+        {formatKoreanDate(when)} {formatKoreanTime(when)}
+        <br />
+        {place}
+      </p>
+      <ScrollHint />
+    </header>
+  )
+}
+
+// 에디토리얼 매거진: 잡지 제호, 사진 위 이름
+function MagazineCover({ wedding, hosts, when, photo, place }) {
+  const [first, second] = hosts
+  return (
+    <header className="cover cover--magazine">
+      <div className="cover__mast">
+        <span>VOL. {pad(when.month)}</span>
+        <span>{formatDotDate(when)}</span>
+      </div>
+      <p className="cover__masthead" aria-hidden="true">
+        Wedding
+      </p>
+      <figure className="cover__mag">
+        {photo}
+        <figcaption>
+          <span className="cover__kicker">{wedding.cover.caption}</span>
+          <h1 className="cover__names">
+            {first.name}
+            <em> &amp; </em>
+            {second.name}
+          </h1>
+        </figcaption>
+      </figure>
+      <div className="cover__mag-foot">
+        <span>
+          {formatKoreanDate(when)} {formatKoreanTime(when)}
+        </span>
+        <span>{place}</span>
+      </div>
+      <ScrollHint />
+    </header>
+  )
+}
+
+const LAYOUTS = {
+  arch: ArchCover,
+  frame: FrameCover,
+  full: FullCover,
+  type: TypeCover,
+  circle: CircleCover,
+  oval: OvalCover,
+  polaroid: PolaroidCover,
+  magazine: MagazineCover,
+}
 
 export default function Cover() {
   const wedding = useWedding()

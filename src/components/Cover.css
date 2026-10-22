@@ -335,6 +335,298 @@
   align-self: center;
 }
 
+/* 내용이 화면보다 짧은 표지는 위아래 가운데에 놓는다 (스크롤 안내는 맨 아래) */
+.cover--circle > :first-child,
+.cover--oval > :first-child,
+.cover--polaroid > :first-child {
+  margin-top: auto;
+}
+
+/* ---------- 전통 한지: 囍와 둥근 사진 ---------- */
+
+.cover--circle {
+  padding-top: 60px;
+}
+
+.cover__seal {
+  font-family: var(--font-serif);
+  font-size: 48px;
+  line-height: 1;
+  color: var(--color-accent);
+}
+
+.cover--circle .cover__caption {
+  margin-top: 18px;
+}
+
+.cover__circle-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  margin-top: 34px;
+}
+
+/* 이름을 세로로 */
+.cover__vname {
+  font-family: var(--font-serif);
+  font-size: 24px;
+  letter-spacing: 0.35em;
+  writing-mode: vertical-rl;
+}
+
+.cover__circle {
+  position: relative;
+  flex: none;
+  width: min(240px, 62vw);
+  margin: 0;
+  padding: 8px;
+  border: 1px solid var(--color-accent);
+  border-radius: 50%;
+  aspect-ratio: 1;
+}
+
+.cover__circle::before {
+  content: '';
+  position: absolute;
+  inset: -9px;
+  border: 1px solid var(--color-accent);
+  border-radius: 50%;
+  opacity: 0.4;
+}
+
+.cover__circle img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--color-accent-soft);
+}
+
+.cover--circle .cover__info {
+  margin-top: 34px;
+}
+
+/* ---------- 보태니컬 가든·파스텔 라벤더: 타원 사진과 잎 화관 ---------- */
+
+.cover--oval {
+  padding-top: 56px;
+}
+
+.cover__oval-wrap {
+  position: relative;
+  width: 84%;
+  margin-top: 28px;
+  aspect-ratio: 3 / 4;
+}
+
+.cover__oval {
+  position: absolute;
+  inset: 7% 10% 5%;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--color-accent-soft);
+}
+
+.cover__oval img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover__wreath {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  color: var(--color-accent);
+}
+
+.cover--oval .cover__names {
+  margin-top: 26px;
+}
+
+/* ---------- 레트로 필름: 폴라로이드 ---------- */
+
+.cover--polaroid {
+  padding-top: 46px;
+}
+
+.cover__hand-date {
+  font-family: var(--font-script);
+  font-size: 46px;
+  line-height: 1;
+  color: var(--color-accent);
+  transform: rotate(-4deg);
+}
+
+.cover__polaroid {
+  position: relative;
+  width: 84%;
+  margin: 28px 0 0;
+  padding: 14px 14px 0;
+  background: #fffdf8;
+  box-shadow:
+    0 12px 28px rgba(74, 59, 44, 0.18),
+    0 2px 6px rgba(74, 59, 44, 0.1);
+  transform: rotate(-2.5deg);
+}
+
+.cover__polaroid-photo {
+  overflow: hidden;
+  background: var(--color-accent-soft);
+  aspect-ratio: 4 / 5;
+}
+
+.cover__polaroid-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: sepia(0.12) saturate(0.95);
+}
+
+.cover__polaroid figcaption {
+  padding: 12px 0 16px;
+  font-family: var(--font-script);
+  font-size: 26px;
+  color: #5b4a3a;
+  text-align: center;
+  text-transform: lowercase;
+}
+
+/* 사진 위에 붙인 마스킹 테이프 */
+.cover__tape {
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 110px;
+  height: 30px;
+  background: rgba(240, 225, 190, 0.78);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  transform: translateX(-50%) rotate(3deg);
+}
+
+.cover--polaroid .cover__names {
+  margin-top: 36px;
+  font-family: var(--font-hand);
+  font-size: 38px;
+  letter-spacing: 0.04em;
+}
+
+.cover--polaroid .cover__and {
+  margin: 0 0.35em;
+  font-size: 0.7em;
+  color: var(--color-bride);
+}
+
+/* ---------- 에디토리얼 매거진: 잡지 표지 ---------- */
+
+.cover--magazine {
+  align-items: stretch;
+  padding: 26px var(--gutter) 32px;
+  text-align: left;
+}
+
+.cover__mast {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-text);
+  font-family: var(--font-display);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+}
+
+/* 제호: 사진 위로 살짝 걸치게 */
+.cover__masthead {
+  position: relative;
+  z-index: 1;
+  margin-top: 4px;
+  font-family: var(--font-display);
+  font-size: min(96px, 23vw);
+  font-style: italic;
+  font-weight: 700;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  text-align: center;
+}
+
+.cover__mag {
+  position: relative;
+  margin: -24px calc(var(--gutter) * -1) 0;
+  overflow: hidden;
+  background: var(--color-bg-soft);
+  aspect-ratio: 4 / 5;
+}
+
+.cover__mag img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cover__mag::after {
+  content: '';
+  position: absolute;
+  inset: 45% 0 0;
+  background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.65));
+}
+
+.cover__mag figcaption {
+  position: absolute;
+  right: var(--gutter);
+  bottom: 22px;
+  left: var(--gutter);
+  z-index: 1;
+  color: #fff;
+}
+
+.cover__kicker {
+  display: inline-block;
+  padding: 4px 8px;
+  background: var(--color-accent);
+  color: var(--color-on-accent);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.cover--magazine .cover__names {
+  margin-top: 12px;
+  font-family: var(--font-serif);
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.cover--magazine .cover__names em {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+}
+
+.cover__mag-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-text);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+.cover--magazine .cover__scroll {
+  align-self: center;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .cover,
   .cover__scroll {
