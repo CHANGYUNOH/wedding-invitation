@@ -107,6 +107,6 @@ export const wedding = {
     // 카카오톡은 같은 주소의 이미지를 한동안 저장해두므로, 이미지를 바꾸면 ?v= 뒤 숫자를 올려주세요.
     image: 'images/og.png?v=2',
     // 배포한 청첩장 주소. 링크를 카톡방에 직접 붙여넣었을 때의 미리보기(og 태그)에 쓰입니다.
-    siteUrl: 'https://wedding-invitation-three-nu-93.vercel.app',
+    siteUrl: 'https://wedding-invitation-1qfiuts4c-changyu.vercel.app/',
   },
 }
