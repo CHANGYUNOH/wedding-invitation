@@ -96,6 +96,27 @@ npm run preview  # 빌드 결과 미리보기
 
 색상·폰트는 [src/styles/global.css](src/styles/global.css) 상단의 CSS 변수에서 바꿀 수 있습니다.
 
+### 실명·계좌번호 따로 두기
+
+GitHub에 실명과 계좌번호가 남지 않도록 `wedding.js`에는 샘플 이름·계좌(김민준·이서연)만 두고, 실제 값은 git에 올리지 않는 곳에 적습니다. 빌드할 때 그 값이 `wedding.js` 위에 덮어써집니다. 객체는 안쪽까지 합쳐지고, 계좌 목록 같은 배열은 통째로 바뀝니다.
+
+- **내 PC**: 프로젝트 폴더의 `wedding.private.json` (`.gitignore`에 들어 있음)
+- **Vercel**: 환경 변수 `WEDDING_PRIVATE`에 같은 JSON을 그대로 넣습니다. 값을 바꾸면 다시 배포해야 반영됩니다. 설정돼 있으면 `wedding.private.json`보다 먼저 쓰입니다.
+
+```json
+{
+  "groom": { "name": "홍길동", "shortName": "길동", "father": "홍아버지", "mother": "김어머니" },
+  "bride": { "name": "성춘향", "shortName": "춘향", "father": "성아버지", "mother": "월매" },
+  "accounts": {
+    "groom": [{ "role": "신랑", "name": "홍길동", "bank": "국민은행", "number": "123-45-678901" }],
+    "bride": [{ "role": "신부", "name": "성춘향", "bank": "하나은행", "number": "123-456789-01234", "kakaopay": "" }]
+  },
+  "share": { "title": "홍길동 ♥ 성춘향 결혼합니다" }
+}
+```
+
+빌드 로그의 `[wedding]` 줄에서 적용 여부를 확인할 수 있습니다. JSON 형식이 틀리면 샘플 이름으로 배포되지 않도록 빌드가 멈춥니다. 정보 입력 페이지(`/edit`)는 샘플 값으로 시작하고, 거기서 실명을 넣어 내려받은 `wedding.js`를 그대로 커밋하면 실명이 다시 올라가니 실명·계좌 부분은 `wedding.private.json`으로 옮겨주세요. 공유 카드 이미지(`og.png`)에도 이름을 넣지 않았습니다. 이름은 카드 제목(`share.title`)에 나옵니다.
+
 ## 구글 시트 설정 (RSVP·방명록)
 
 참석 의사와 방명록은 내 구글 드라이브의 스프레드시트에 쌓입니다. 처음 한 번만 설정하면 됩니다.
@@ -138,7 +159,7 @@ VITE_SHEETS_API_URL=https://script.google.com/macros/s/xxxxxxxx/exec
 
 `npm run build` 결과인 `dist/` 폴더를 정적 호스팅에 올리면 됩니다. 상대 경로로 빌드되므로 하위 경로에서도 동작합니다.
 
-- **Vercel / Netlify**: 저장소를 연결하고 Build command `npm run build`, Output `dist`. 환경 변수 2개(`VITE_SHEETS_API_URL`, `VITE_KAKAO_JS_KEY`)를 대시보드에 등록합니다.
+- **Vercel / Netlify**: 저장소를 연결하고 Build command `npm run build`, Output `dist`. 환경 변수 3개(`VITE_SHEETS_API_URL`, `VITE_KAKAO_JS_KEY`, `WEDDING_PRIVATE`)를 대시보드에 등록합니다. `WEDDING_PRIVATE`는 위의 "실명·계좌번호 따로 두기"를 참고하세요.
 - **GitHub Pages**: Actions로 `dist/`를 배포합니다. 환경 변수는 저장소 Secrets로 넘겨주세요.
 
 배포 후에는 카카오 디벨로퍼스에 실제 도메인을 꼭 추가하고, `share.siteUrl`도 실제 주소로 바꿔주세요.

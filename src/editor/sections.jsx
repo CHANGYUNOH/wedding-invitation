@@ -91,7 +91,7 @@ export function HostSection({ draft, set, done }) {
             label="신랑 부르는 이름"
             value={draft.groom.shortName}
             onChange={(v) => set('groom.shortName', v)}
-            placeholder={shortNameOf({ ...draft.groom, shortName: '' }) || '예: 찬규'}
+            placeholder={shortNameOf({ ...draft.groom, shortName: '' }) || '예: 민준'}
           />
         </Field>
         <Field label="신부 부르는 이름" className="ed-field--compact">
@@ -99,7 +99,7 @@ export function HostSection({ draft, set, done }) {
             label="신부 부르는 이름"
             value={draft.bride.shortName}
             onChange={(v) => set('bride.shortName', v)}
-            placeholder={shortNameOf({ ...draft.bride, shortName: '' }) || '예: 수경'}
+            placeholder={shortNameOf({ ...draft.bride, shortName: '' }) || '예: 서연'}
           />
         </Field>
       </Row>

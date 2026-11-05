@@ -7,3 +7,6 @@ dist
 
 # 원본 사진 (npm run photos 가 줄인 결과물만 public/images 에 커밋)
 photos/
+
+# 실명·계좌번호 (빌드할 때 wedding.js 위에 덮어씀, README "실명·계좌번호 따로 두기" 참고)
+wedding.private.json

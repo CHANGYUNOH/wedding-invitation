@@ -1,10 +1,14 @@
 import { Component, StrictMode, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App.jsx'
-import { wedding } from './config/wedding.js'
+import { wedding as publicWedding } from './config/wedding.js'
+import { withPrivate } from './config/private.js'
 import { WeddingProvider } from './lib/wedding-context.jsx'
 import './styles/global.css'
 import './styles/themes.css'
+
+// 실명·계좌번호(wedding.private.json 또는 WEDDING_PRIVATE)는 빌드할 때 vite.config.js 가 넣어준다.
+const wedding = withPrivate(publicWedding, __WEDDING_PRIVATE__)
 
 // 편집 페이지(/edit)의 미리보기 iframe은 ?preview 로 열리고, 부모 창이 보내주는 입력 내용으로 그린다.
 const isPreview = new URLSearchParams(window.location.search).has('preview')

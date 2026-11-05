@@ -127,7 +127,7 @@ export function clearDraft() {
 
 // ---------- 값 다듬기 ----------
 
-// 부르는 이름을 비워두면 성을 뺀 이름을 쓴다 (노찬규 → 찬규).
+// 부르는 이름을 비워두면 성을 뺀 이름을 쓴다 (김민준 → 민준).
 export function shortNameOf(p) {
   if (p.shortName.trim()) return p.shortName.trim()
   const name = p.name.trim()

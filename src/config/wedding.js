@@ -1,6 +1,8 @@
 // 청첩장의 모든 문구·정보는 이 파일에서 수정합니다.
 // 이미지·음악 경로는 public/ 폴더 기준 상대 경로입니다.
 // 커버·갤러리 사진은 photos/ 폴더에 원본을 넣으면 자동으로 줄여서 들어갑니다 (README 참고).
+// 이름·계좌는 샘플입니다. 실제 값은 git에 올리지 않는 wedding.private.json(또는 Vercel 환경변수
+// WEDDING_PRIVATE)에 적으면 빌드할 때 이 파일 위에 덮어씁니다 (README "실명·계좌번호 따로 두기" 참고).
 import { photos } from './photos.generated.js'
 
 export const wedding = {
@@ -11,20 +13,20 @@ export const wedding = {
   hostOrder: 'groom-first',
   // 돌아가신 부모님은 fatherDeceased·motherDeceased 를 true 로 두면 이름 앞에 故 가 붙습니다.
   groom: {
-    name: '노찬규',
-    shortName: '찬규',
-    father: '노충섭',
+    name: '김민준',
+    shortName: '민준',
+    father: '김영수',
     fatherDeceased: false,
-    mother: '박은주',
+    mother: '정미경',
     motherDeceased: false,
     relation: '아들',
   },
   bride: {
-    name: '조수경',
-    shortName: '수경',
-    father: '아빠',
+    name: '이서연',
+    shortName: '서연',
+    father: '이정호',
     fatherDeceased: false,
-    mother: '엄마',
+    mother: '박지은',
     motherDeceased: false,
     relation: '딸',
   },
@@ -84,13 +86,13 @@ export const wedding = {
 
   accounts: {
     groom: [
-      { role: '신랑', name: '노찬규', bank: '부산은행', number: '175-12-000025-9' },
-      { role: '아버지', name: '노충섭', bank: '신한은행', number: '000-000-000000' },
-      { role: '어머니', name: '박은주', bank: '우리은행', number: '0000-000-000000' },
+      { role: '신랑', name: '김민준', bank: '국민은행', number: '000-00-000000-0' },
+      { role: '아버지', name: '김영수', bank: '신한은행', number: '000-000-000000' },
+      { role: '어머니', name: '정미경', bank: '우리은행', number: '0000-000-000000' },
     ],
     bride: [
       // kakaopay: 카카오페이 송금 링크가 있으면 버튼이 함께 표시됩니다.
-      { role: '신부', name: '조수경', bank: '하나은행', number: '000-000000-00000', kakaopay: '' },
+      { role: '신부', name: '이서연', bank: '하나은행', number: '000-000000-00000', kakaopay: '' },
       { role: '아버지', name: '이정호', bank: '농협', number: '000-0000-0000-00' },
       { role: '어머니', name: '박지은', bank: '기업은행', number: '000-000000-00-000' },
     ],
@@ -101,11 +103,11 @@ export const wedding = {
   bgm: '',
 
   share: {
-    title: '노찬규 ♥ 조수경 결혼합니다',
+    title: '김민준 ♥ 이서연 결혼합니다',
     description: '2027년 4월 17일 토요일 낮 12시 30분, 더세인트 6층 그랜드볼룸',
     // 공유 카드 이미지 (JPG/PNG, 5MB 이하, 가로 800px 이상 권장). SVG는 카카오톡에서 표시되지 않습니다.
     // 카카오톡은 같은 주소의 이미지를 한동안 저장해두므로, 이미지를 바꾸면 ?v= 뒤 숫자를 올려주세요.
-    image: 'images/og.png?v=2',
+    image: 'images/og.png?v=3',
     // 배포한 청첩장 주소. 링크를 카톡방에 직접 붙여넣었을 때의 미리보기(og 태그)에 쓰입니다.
     // Vercel의 고정 주소(Domains)를 적어주세요. 배포마다 바뀌는 '-xxxxxxxxx-팀이름.vercel.app' 주소는 로그인이 필요해 하객이 열 수 없습니다.
     siteUrl: 'https://wedding-invitation-three-nu-93.vercel.app',
