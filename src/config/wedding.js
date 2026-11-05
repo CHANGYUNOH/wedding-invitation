@@ -110,6 +110,6 @@ export const wedding = {
     image: 'images/og.png?v=3',
     // 배포한 청첩장 주소. 링크를 카톡방에 직접 붙여넣었을 때의 미리보기(og 태그)에 쓰입니다.
     // Vercel의 고정 주소(Domains)를 적어주세요. 배포마다 바뀌는 '-xxxxxxxxx-팀이름.vercel.app' 주소는 로그인이 필요해 하객이 열 수 없습니다.
-    siteUrl: 'https://wedding-invitation-three-nu-93.vercel.app',
+    siteUrl: 'https://wedding-card-invitation-mobile.vercel.app',
   },
 }
