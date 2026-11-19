@@ -94,6 +94,16 @@ export const THEMES = [
     swatch: { bg: '#ffffff', soft: '#fbe7e5', text: '#111111', accent: '#d6352b' },
     typeface: { display: "'Playfair Display', serif", text: "'Noto Serif KR', serif" },
   },
+  {
+    id: 'clean',
+    name: '클린 포토',
+    desc: '화면 가득한 사진과 가는 세리프 제목, 장식 없이 여백으로 정돈한 디자인',
+    cover: 'photo',
+    fonts: ['Cormorant+Garamond:wght@300;400;500', 'Gowun+Batang:wght@400;700'],
+    themeColor: '#ffffff',
+    swatch: { bg: '#ffffff', soft: '#ede8e3', text: '#222222', accent: '#b3a295' },
+    typeface: { display: "'Cormorant Garamond', serif", text: "'Gowun Batang', serif" },
+  },
 ]
 
 export const DEFAULT_THEME = THEMES[0].id

@@ -444,3 +444,69 @@
 :root[data-theme='magazine'] .countdown__value {
   font-weight: 700;
 }
+
+/* ---------- 클린 포토 ---------- */
+
+:root[data-theme='clean'] {
+  --color-backdrop: #ede8e3;
+  --color-bg: #ffffff;
+  --color-bg-soft: #f8f8f7;
+  --color-text: #222222;
+  --color-text-muted: #8c8782;
+  --color-line: #ecebe8;
+  --color-accent: #b3a295;
+  --color-accent-soft: #f3efeb;
+  --color-accent-strong: #8a7a6e;
+  --color-on-accent: #ffffff;
+  --color-groom: #7f93ad;
+  --color-bride: #dc8a8a;
+
+  --font-serif: 'Gowun Batang', 'Nanum Myeongjo', serif;
+  --font-display: 'Cormorant Garamond', 'Gowun Batang', serif;
+  --radius: 2px;
+  --shadow: 0 4px 18px rgba(34, 34, 34, 0.06);
+}
+
+/* 장식 없이 여백과 글자 크기 차이만으로 구분한다 */
+:root[data-theme='clean'] .section {
+  padding-top: 104px;
+  padding-bottom: 104px;
+}
+
+/* 영문 제목을 크고 가늘게, 한글 제목은 그 아래 작게 */
+:root[data-theme='clean'] .section__eyebrow {
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  color: var(--color-text);
+}
+
+:root[data-theme='clean'] .section__title {
+  margin-top: 12px;
+  margin-bottom: 48px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--color-text-muted);
+}
+
+:root[data-theme='clean'] .greeting__message {
+  font-size: 14px;
+  line-height: 2.4;
+}
+
+:root[data-theme='clean'] .greeting__divider {
+  width: 20px;
+  height: 1px;
+  background: var(--color-accent);
+}
+
+:root[data-theme='clean'] .countdown__value {
+  font-weight: 300;
+}
+
+/* 갤러리는 좌우 여백 없이 화면 끝까지 */
+:root[data-theme='clean'] .gallery__grid {
+  gap: 2px;
+  margin: 0 calc(-1 * var(--gutter));
+}

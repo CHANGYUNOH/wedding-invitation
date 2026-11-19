@@ -297,6 +297,25 @@ function MagazineCover({ wedding, hosts, when, photo, place }) {
   )
 }
 
+// 클린 포토: 화면 가득한 사진, 위쪽 밝은 여백에 이름과 일시
+function PhotoCover({ wedding, hosts, when, photo, place }) {
+  return (
+    <header className="cover cover--photo">
+      <figure className="cover__bg">{photo}</figure>
+      <div className="cover__content">
+        <p className="cover__eyebrow">{wedding.cover.caption}</p>
+        <Names hosts={hosts} joiner="&" />
+        <p className="cover__info">
+          {formatKoreanDate(when)} {formatKoreanTime(when)}
+          <br />
+          {place}
+        </p>
+      </div>
+      <ScrollHint />
+    </header>
+  )
+}
+
 const LAYOUTS = {
   arch: ArchCover,
   frame: FrameCover,
@@ -306,6 +325,7 @@ const LAYOUTS = {
   oval: OvalCover,
   polaroid: PolaroidCover,
   magazine: MagazineCover,
+  photo: PhotoCover,
 }
 
 export default function Cover() {

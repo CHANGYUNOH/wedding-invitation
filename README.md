@@ -43,8 +43,9 @@ npm run preview  # 빌드 결과 미리보기
 | `lavender` | 파스텔 라벤더 | 타원 사진과 라벤더 화관, 둥근 글꼴, 하트 장식 |
 | `film` | 레트로 필름 | 테이프 붙인 폴라로이드, 손글씨, 종이 질감과 머스터드 |
 | `magazine` | 에디토리얼 매거진 | 잡지 제호와 사진 위 이름, 흑백에 레드 포인트 |
+| `clean` | 클린 포토 | 화면 가득한 사진과 가는 세리프 제목, 장식 없이 여백으로 정돈 |
 
-색·글꼴·섹션 제목 장식은 [src/styles/themes.css](src/styles/themes.css), 템플릿 목록과 표지 구성은 [src/themes/index.js](src/themes/index.js)에 있습니다. 새 템플릿을 추가하려면 `THEMES`에 항목을 넣고 `themes.css`에 `:root[data-theme='새 id']` 색 변수를 정의하면 됩니다. 표지 구성(`cover`)은 기존 `arch`·`frame`·`full`·`type`·`circle`·`oval`·`polaroid`·`magazine` 중에서 고르거나 [Cover.jsx](src/components/Cover.jsx)에 새로 추가합니다.
+색·글꼴·섹션 제목 장식은 [src/styles/themes.css](src/styles/themes.css), 템플릿 목록과 표지 구성은 [src/themes/index.js](src/themes/index.js)에 있습니다. 새 템플릿을 추가하려면 `THEMES`에 항목을 넣고 `themes.css`에 `:root[data-theme='새 id']` 색 변수를 정의하면 됩니다. 표지 구성(`cover`)은 기존 `arch`·`frame`·`full`·`type`·`circle`·`oval`·`polaroid`·`magazine`·`photo` 중에서 고르거나 [Cover.jsx](src/components/Cover.jsx)에 새로 추가합니다.
 
 ## 정보 입력 페이지 (`/edit`)
 

@@ -852,6 +852,40 @@ button {
   font-weight: 700;
 }
 
+/* 클린 포토: 가득 찬 사진 위쪽에 글자 */
+.ed-theme__thumb--photo {
+  padding-top: 16px;
+}
+
+.ed-theme__thumb--photo .ed-theme__photo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  margin: 0;
+  background:
+    linear-gradient(to bottom, #fff 0%, rgba(255, 255, 255, 0.8) 26%, rgba(255, 255, 255, 0) 52%),
+    linear-gradient(160deg, var(--t-soft), var(--t-accent));
+  opacity: 1;
+}
+
+.ed-theme__thumb--photo .ed-theme__date,
+.ed-theme__thumb--photo .ed-theme__names {
+  position: relative;
+  z-index: 1;
+}
+
+.ed-theme__thumb--photo .ed-theme__date {
+  font-size: 9px;
+  font-weight: 300;
+  letter-spacing: 0.24em;
+}
+
+.ed-theme__thumb--photo .ed-theme__names {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+}
+
 .ed-theme__name {
   font-size: 14px;
   font-weight: 700;
