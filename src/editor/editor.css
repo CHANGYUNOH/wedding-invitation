@@ -897,6 +897,111 @@ button {
   line-height: 1.45;
 }
 
+.ed-url-notice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: #fff6e5;
+  color: #8a5a00;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* ---------- QR코드 내려받기 ---------- */
+
+.ed-qr {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--ed-line);
+  border-radius: 12px;
+  background: var(--ed-surface);
+}
+
+.ed-qr__code {
+  flex-shrink: 0;
+  width: 132px;
+  height: 132px;
+  border: 1px solid var(--ed-line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.ed-qr__code img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ed-qr__side {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ed-qr__url {
+  margin: 0;
+  overflow: hidden;
+  color: var(--ed-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ed-qr__buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.ed-qr__btn {
+  flex-direction: column;
+  gap: 2px;
+  height: 52px;
+  padding: 0 6px;
+  font-size: 14px;
+}
+
+.ed-qr__btn small {
+  color: var(--ed-muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+.ed-qr__tips {
+  margin: 0;
+  padding-left: 16px;
+  color: var(--ed-muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.ed-qr__empty {
+  margin: 0;
+  padding: 16px;
+  border: 1px dashed var(--ed-line);
+  border-radius: 12px;
+  color: var(--ed-muted);
+  font-size: 13px;
+}
+
+@media (max-width: 480px) {
+  .ed-qr {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .ed-qr__side {
+    width: 100%;
+  }
+}
+
 /* ---------- 예식장 검색 ---------- */
 
 .ed-search__bar {

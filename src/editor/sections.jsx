@@ -9,6 +9,8 @@ import { ensureThemeFonts } from '../lib/theme-fonts.js'
 import { addAudio, addPhotos, removeMedia, MAX_AUDIO_SIZE_MB } from './media.js'
 import { toast } from '../components/Toast.jsx'
 import { GREETING_TEMPLATES, autoShareText, hasCoords, isValidDatetime, shortNameOf } from './draft.js'
+import { wedding as currentConfig } from '../config/wedding.js'
+import QrDownload, { normalizeUrl } from './QrDownload.jsx'
 import { Check, CloseIcon, Datalist, Field, IconButton, PlusIcon, Row, Section, TextArea, TextInput } from './ui.jsx'
 
 const RELATIONS = ['아들', '장남', '차남', '삼남', '막내아들', '외아들', '딸', '장녀', '차녀', '삼녀', '막내딸', '외동딸']
@@ -485,6 +487,9 @@ export function ShareSection({ draft, set, done }) {
   const auto = autoShareText(draft)
   const title = draft.share.title.trim() || auto.title
   const description = draft.share.description.trim() || auto.description
+  // 예전에 저장해 둔 입력 내용에는 옛 주소가 남아 있을 수 있어, 지금 배포 주소와 다르면 알려준다.
+  const deployedUrl = currentConfig.share.siteUrl
+  const urlDiffers = normalizeUrl(draft.share.siteUrl) !== normalizeUrl(deployedUrl)
 
   return (
     <Section id="share" emoji="🔗" title="공유 설정" desc="카카오톡으로 보낼 때 보이는 문구예요. 비워두면 입력한 정보로 자동으로 채워져요." done={done} optional>
@@ -508,6 +513,17 @@ export function ShareSection({ draft, set, done }) {
       </Field>
       <Field label="청첩장 주소" hint="배포된 청첩장 주소예요. 잘 모르면 그대로 두세요.">
         <TextInput label="청첩장 주소" value={draft.share.siteUrl} onChange={(v) => set('share.siteUrl', v)} inputMode="url" />
+        {urlDiffers && (
+          <p className="ed-url-notice">
+            지금 배포된 주소({deployedUrl})와 달라요. QR코드와 공유 링크가 이 주소로 연결돼요.
+            <button type="button" className="ed-link" onClick={() => set('share.siteUrl', deployedUrl)}>
+              배포된 주소로 바꾸기
+            </button>
+          </p>
+        )}
+      </Field>
+      <Field label="실물 청첩장용 QR코드" hint="종이 청첩장에 넣으면 휴대폰 카메라로 찍어 모바일 청첩장을 열 수 있어요.">
+        <QrDownload url={draft.share.siteUrl} />
       </Field>
     </Section>
   )

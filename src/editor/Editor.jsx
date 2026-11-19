@@ -4,6 +4,7 @@ import { copyText } from '../lib/clipboard.js'
 import { Toaster, toast } from '../components/Toast.jsx'
 import { blankDraft, checklist, clearDraft, draftFromConfig, loadDraft, saveDraft, toPreviewConfig } from './draft.js'
 import { toWeddingJs } from './exportConfig.js'
+import { saveFile } from './saveFile.js'
 import PreviewFrame from './Preview.jsx'
 import { clearMedia, useMediaUrls } from './media.js'
 import { CloseIcon, Connector, PlusIcon } from './ui.jsx'
@@ -117,15 +118,6 @@ function Intro({ onBlank, onCurrent }) {
 }
 
 // ---------- 마무리 ----------
-
-function saveFile(blob, name) {
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = name
-  a.click()
-  setTimeout(() => URL.revokeObjectURL(url), 1000)
-}
 
 function Finish({ draft, checks, onReset }) {
   const missing = checks.filter((c) => c.required && !c.ok)
