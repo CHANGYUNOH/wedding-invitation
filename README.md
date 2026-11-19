@@ -1,6 +1,6 @@
 # 모바일 청첩장
 
-Vite + React로 만든 모바일 청첩장입니다. 정적 사이트로 빌드되며, RSVP·방명록은 구글 시트에 저장합니다 (무료, 사용하지 않아도 멈추지 않음).
+Vite + React로 만든 모바일 청첩장입니다. 정적 사이트로 빌드되며, RSVP·방명록은 Supabase에 저장합니다.
 
 ## 구성
 
@@ -26,7 +26,7 @@ npm run build    # dist/ 에 정적 파일 생성
 npm run preview  # 빌드 결과 미리보기
 ```
 
-`.env` 없이도 `npm run dev`는 바로 실행됩니다. 이때 RSVP·방명록은 브라우저 localStorage에 저장되는 **로컬 모드**로 동작합니다. 배포 빌드에서는 로컬 모드를 쓰지 않으므로, 배포 전에 아래 구글 시트 설정을 꼭 해주세요 (설정이 빠지면 방명록에 오류가 표시됩니다).
+`.env` 없이도 `npm run dev`는 바로 실행됩니다. 이때 RSVP·방명록은 브라우저 localStorage에 저장되는 **로컬 모드**로 동작합니다. 배포 빌드에서는 로컬 모드를 쓰지 않으므로, 배포 전에 아래 Supabase 설정을 꼭 해주세요 (설정이 빠지면 방명록에 오류가 표시됩니다).
 
 ## 디자인 템플릿
 
@@ -119,31 +119,23 @@ GitHub에 실명과 계좌번호가 남지 않도록 `wedding.js`에는 샘플 �
 
 지금 배포된 청첩장은 `WEDDING_PRIVATE`를 넣지 않아 샘플 이름·계좌로 보입니다. 하객에게 실제 이름·계좌를 보여줄 때가 되면 Vercel에 `WEDDING_PRIVATE`를 추가하고 다시 배포하세요.
 
-## 구글 시트 설정 (RSVP·방명록)
+## Supabase 설정 (RSVP·방명록)
 
-참석 의사와 방명록은 내 구글 드라이브의 스프레드시트에 쌓입니다. 처음 한 번만 설정하면 됩니다.
+참석 의사와 방명록은 내 Supabase 프로젝트의 데이터베이스에 쌓입니다. 처음 한 번만 설정하면 됩니다.
 
-> **개인 Gmail 계정 하나로만 로그인한 창**(시크릿 창 등)에서 진행하세요. 여러 계정에 동시에 로그인돼 있으면 Apps Script가 "요청한 문서를 액세스할 권한이 없습니다" 오류를 냅니다. 회사(Workspace) 계정은 관리자 정책 때문에 파일 생성이나 "모든 사용자" 공개 배포가 막혀 있을 수 있습니다.
-
-1. [Google 스프레드시트](https://sheets.new)에서 새 시트를 만들고 이름을 정합니다 (예: `청첩장 응답`).
-2. 메뉴 **확장 프로그램 → Apps Script**를 엽니다.
-3. 편집기의 `Code.gs` 내용을 모두 지우고 [google-apps-script/Code.gs](google-apps-script/Code.gs) 내용을 붙여넣은 뒤 저장합니다.
-4. 위쪽 함수 선택에서 **setup**을 고르고 **실행**합니다.
-   - 권한 요청이 나오면 내 구글 계정을 선택합니다. "Google에서 확인하지 않은 앱" 화면이 나오면 **고급 → (안전하지 않음)으로 이동 → 허용**을 누릅니다. 내가 만든 스크립트가 내 시트에 접근하는 것이라 괜찮습니다.
-   - 시트에 `참석 의사`, `방명록` 탭이 생기면 성공입니다.
-   - [script.google.com](https://script.google.com)에서 프로젝트를 따로 만든 경우에도 됩니다. 이때는 setup이 내 드라이브에 `청첩장 응답` 시트를 새로 만들고, 아래 **실행 로그**에 시트 주소를 알려줍니다.
-5. 오른쪽 위 **배포 → 새 배포 → 유형 선택(톱니바퀴) → 웹 앱**을 고릅니다.
-   - 실행 계정: **나**
-   - 액세스 권한이 있는 사용자: **모든 사용자**
-6. **배포**를 누르고 나오는 **웹 앱 URL**(`https://script.google.com/macros/s/…/exec`)을 복사해 `.env`와 Vercel 환경 변수에 넣습니다.
+1. [supabase.com](https://supabase.com/dashboard)에서 프로젝트를 만듭니다 (무료 플랜으로 충분, 지역은 Seoul 권장).
+2. **SQL Editor**에 [supabase/schema.sql](supabase/schema.sql) 내용을 붙여넣고 실행합니다. `rsvp`, `guestbook` 테이블이 생기면 성공입니다.
+3. **Project Settings → API Keys**에서 Project URL과 publishable 키(또는 `anon` 키)를 복사해 `.env`와 Vercel 환경 변수에 넣습니다.
 
 ```
-VITE_SHEETS_API_URL=https://script.google.com/macros/s/xxxxxxxx/exec
+VITE_SUPABASE_URL=https://xxxxxxxx.supabase.co
+VITE_SUPABASE_ANON_KEY=sb_publishable_xxxxxxxx
 ```
 
-- **응답 확인**: `참석 의사` 탭에서 바로 볼 수 있고, 필터·합계로 인원을 집계하거나 가족과 시트를 공유하면 됩니다.
-- **방명록 관리**: 이상한 글은 `방명록` 탭에서 그 줄을 지우면 청첩장에서도 사라집니다. 숨겨진 D~F열(id·salt·hash)은 하객이 비밀번호로 글을 지울 때 쓰이니 건드리지 마세요. 비밀번호 자체는 저장되지 않습니다.
-- **Code.gs를 수정했다면**: **배포 → 배포 관리 → 연필(수정) → 버전: 새 버전 → 배포**로 올리세요. "새 배포"를 다시 만들면 URL이 바뀌어 환경 변수도 바꿔야 합니다.
+- **키 주의**: 브라우저에 그대로 실리는 값이라 publishable/anon 키만 넣어야 합니다. secret(`service_role`) 키는 절대 넣지 마세요.
+- **응답 확인**: 대시보드 **Table Editor → rsvp**에서 봅니다 (CSV 내보내기 가능). 하객은 참석 의사를 제출만 할 수 있고 조회할 수 없습니다.
+- **방명록 관리**: 이상한 글은 **Table Editor → guestbook**에서 그 줄을 지우면 청첩장에서도 사라집니다. 비밀번호는 bcrypt 해시(`password_hash`)로만 저장되고 브라우저로 내려가지 않습니다.
+- **일시 정지 주의**: 무료 플랜 프로젝트는 일주일간 요청이 없으면 일시 정지됩니다. 청첩장을 돌리기 전처럼 방문이 없는 기간에는 대시보드에서 상태를 확인하고, 멈췄다면 **Restore**를 눌러주세요.
 
 ## 카카오 설정 (공유·지도)
 
@@ -161,7 +153,7 @@ VITE_SHEETS_API_URL=https://script.google.com/macros/s/xxxxxxxx/exec
 
 `npm run build` 결과인 `dist/` 폴더를 정적 호스팅에 올리면 됩니다. 상대 경로로 빌드되므로 하위 경로에서도 동작합니다.
 
-- **Vercel / Netlify**: 저장소를 연결하고 Build command `npm run build`, Output `dist`. 환경 변수 3개(`VITE_SHEETS_API_URL`, `VITE_KAKAO_JS_KEY`, `WEDDING_PRIVATE`)를 대시보드에 등록합니다. `WEDDING_PRIVATE`는 위의 "실명·계좌번호 따로 두기"를 참고하세요.
+- **Vercel / Netlify**: 저장소를 연결하고 Build command `npm run build`, Output `dist`. 환경 변수 4개(`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_KAKAO_JS_KEY`, `WEDDING_PRIVATE`)를 대시보드에 등록합니다. `WEDDING_PRIVATE`는 위의 "실명·계좌번호 따로 두기"를 참고하세요.
 - **GitHub Pages**: Actions로 `dist/`를 배포합니다. 환경 변수는 저장소 Secrets로 넘겨주세요.
 
 배포 후에는 카카오 디벨로퍼스에 실제 도메인을 꼭 추가하고, `share.siteUrl`도 실제 주소로 바꿔주세요.

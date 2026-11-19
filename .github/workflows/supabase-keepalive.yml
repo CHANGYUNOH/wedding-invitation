@@ -1,0 +1,30 @@
+# Supabase 무료 플랜은 일주일간 요청이 없으면 프로젝트를 일시 정지한다.
+# 하루 한 번 방명록을 한 줄 조회해서 멈추지 않게 한다.
+#
+# - 아래 주소와 키는 청첩장 화면(브라우저)에 그대로 실리는 공개 값이다. secret 키는 넣지 않는다.
+# - GitHub는 저장소에 60일간 커밋이 없으면 예약 실행을 끈다. 꺼졌다는 메일이 오면
+#   Actions 탭에서 이 워크플로를 다시 켜면 된다.
+name: Supabase keepalive
+
+on:
+  schedule:
+    - cron: '17 21 * * *' # 매일 06:17 KST
+  workflow_dispatch:
+
+permissions: {}
+
+env:
+  SUPABASE_URL: https://tkadzdsjgbshevaconlm.supabase.co
+  SUPABASE_KEY: sb_publishable_5hj8ptfjsT1bxhmhAhMH3w_P_RaH4Z1
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: 방명록 한 줄 조회
+        run: |
+          curl --fail-with-body --silent --show-error --retry 3 --retry-delay 20 --max-time 30 \
+            -H "apikey: $SUPABASE_KEY" \
+            -H "Authorization: Bearer $SUPABASE_KEY" \
+            "$SUPABASE_URL/rest/v1/guestbook?select=id&limit=1"

@@ -1,31 +1,38 @@
-// RSVP·방명록은 구글 시트(Apps Script 웹 앱)에 저장한다. 설정 방법은 README의 "구글 시트 설정" 참고.
-const API_URL = import.meta.env.VITE_SHEETS_API_URL
+// RSVP·방명록은 Supabase에 저장한다. 설정 방법은 README의 "Supabase 설정" 참고.
+// 필요한 요청이 몇 개뿐이라 SDK 없이 Supabase REST API를 직접 부른다.
+const SUPABASE_URL = (import.meta.env.VITE_SUPABASE_URL ?? '').replace(/\/+$/, '')
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY
 const TIMEOUT_MS = 20_000
+const configured = Boolean(SUPABASE_URL && SUPABASE_KEY)
 
-// 개발 중(npm run dev)에 주소가 없으면 브라우저 localStorage에 저장한다.
-// 배포 빌드에서 주소가 빠졌다면 하객의 글이 각자 휴대폰에만 남지 않도록 오류로 드러낸다.
-export const isLocalMode = !API_URL && import.meta.env.DEV
+// 개발 중(npm run dev)에 설정이 없으면 브라우저 localStorage에 저장한다.
+// 배포 빌드에서 설정이 빠졌다면 하객의 글이 각자 휴대폰에만 남지 않도록 오류로 드러낸다.
+export const isLocalMode = !configured && import.meta.env.DEV
 
 if (isLocalMode) {
-  console.info('[wedding] 구글 시트 주소(VITE_SHEETS_API_URL)가 없어 RSVP·방명록을 localStorage에 저장합니다.')
+  console.info('[wedding] Supabase 설정(VITE_SUPABASE_URL·VITE_SUPABASE_ANON_KEY)이 없어 RSVP·방명록을 localStorage에 저장합니다.')
 }
 
-// GET은 query로, POST는 body로 보낸다. Content-Type을 지정하지 않으면 text/plain으로 보내져
-// CORS 사전 요청(preflight) 없이 Apps Script에 닿는다.
-async function request({ query, body }) {
-  if (!API_URL) throw new Error('VITE_SHEETS_API_URL 이 설정되지 않았습니다.')
-  const url = new URL(API_URL)
-  Object.entries(query ?? {}).forEach(([k, v]) => url.searchParams.set(k, v))
+// path 예: 'guestbook?select=…' (조회), 'rsvp' (추가), 'rpc/add_guestbook' (함수 호출)
+async function request(path, { body, headers } = {}) {
+  if (!configured) throw new Error('VITE_SUPABASE_URL·VITE_SUPABASE_ANON_KEY 가 설정되지 않았습니다.')
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS)
   try {
-    const res = await fetch(url, {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, {
       method: body ? 'POST' : 'GET',
+      headers: {
+        apikey: SUPABASE_KEY,
+        Authorization: `Bearer ${SUPABASE_KEY}`,
+        ...(body && { 'Content-Type': 'application/json' }),
+        ...headers,
+      },
       body: body ? JSON.stringify(body) : undefined,
       signal: controller.signal,
     })
-    const data = await res.json()
-    if (!data.ok) throw new Error(data.error || '요청에 실패했습니다.')
+    const text = await res.text()
+    const data = text ? JSON.parse(text) : null
+    if (!res.ok) throw new Error(data?.message || `요청에 실패했습니다. (${res.status})`)
     return data
   } finally {
     clearTimeout(timer)
@@ -52,7 +59,8 @@ const local = {
 export async function submitRsvp({ side, name, attending, headcount, meal }) {
   const row = { side, name: name.trim(), attending, headcount, meal }
   if (!isLocalMode) {
-    await request({ body: { action: 'rsvp', ...row } })
+    // 하객은 rsvp를 읽을 수 없으므로 저장한 줄을 돌려받지 않는다.
+    await request('rsvp', { body: row, headers: { Prefer: 'return=minimal' } })
     return
   }
   local.write('rsvp', [...local.read('rsvp'), { ...row, id: Date.now(), created_at: new Date().toISOString() }])
@@ -61,8 +69,15 @@ export async function submitRsvp({ side, name, attending, headcount, meal }) {
 // 최신순으로 limit개를 가져오고, 다음 페이지가 있는지 함께 알려준다.
 export async function fetchGuestbook({ offset, limit }) {
   if (!isLocalMode) {
-    const { items, hasMore } = await request({ query: { action: 'guestbook', offset, limit } })
-    return { items, hasMore }
+    // 한 개 더 가져와서 다음 페이지가 있는지 확인한다.
+    const query = new URLSearchParams({
+      select: 'id,name,message,created_at',
+      order: 'created_at.desc,id.desc',
+      offset,
+      limit: limit + 1,
+    })
+    const rows = await request(`guestbook?${query}`)
+    return { items: rows.slice(0, limit), hasMore: rows.length > limit }
   }
   const rows = local
     .read('guestbook')
@@ -73,7 +88,9 @@ export async function fetchGuestbook({ offset, limit }) {
 
 export async function addGuestbook({ name, message, password }) {
   if (!isLocalMode) {
-    await request({ body: { action: 'addGuestbook', name: name.trim(), message: message.trim(), password } })
+    await request('rpc/add_guestbook', {
+      body: { p_name: name.trim(), p_message: message.trim(), p_password: password },
+    })
     return
   }
   const row = {
@@ -89,7 +106,7 @@ export async function addGuestbook({ name, message, password }) {
 // 비밀번호가 맞으면 true, 틀리면 false
 export async function deleteGuestbook({ id, password }) {
   if (!isLocalMode) {
-    const { deleted } = await request({ body: { action: 'deleteGuestbook', id, password } })
+    const deleted = await request('rpc/delete_guestbook', { body: { p_id: id, p_password: password } })
     return deleted === true
   }
   const rows = local.read('guestbook')
