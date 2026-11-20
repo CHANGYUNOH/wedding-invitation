@@ -14,5 +14,12 @@ export const photos = {
     { src: 'images/gallery/10.jpg', thumb: 'images/gallery/thumbs/10.jpg' },
     { src: 'images/gallery/11.jpg', thumb: 'images/gallery/thumbs/11.jpg' },
     { src: 'images/gallery/12.jpg', thumb: 'images/gallery/thumbs/12.jpg' },
+    { src: 'images/gallery/13.jpg', thumb: 'images/gallery/thumbs/13.jpg' },
+    { src: 'images/gallery/14.jpg', thumb: 'images/gallery/thumbs/14.jpg' },
+    { src: 'images/gallery/15.jpg', thumb: 'images/gallery/thumbs/15.jpg' },
+    { src: 'images/gallery/16.jpg', thumb: 'images/gallery/thumbs/16.jpg' },
+    { src: 'images/gallery/17.jpg', thumb: 'images/gallery/thumbs/17.jpg' },
+    { src: 'images/gallery/18.jpg', thumb: 'images/gallery/thumbs/18.jpg' },
+    { src: 'images/gallery/19.jpg', thumb: 'images/gallery/thumbs/19.jpg' },
   ],
 }

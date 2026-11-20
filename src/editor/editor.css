@@ -262,6 +262,13 @@ button {
   color: var(--ed-warn);
 }
 
+.ed-header__actions {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+}
+
 .ed-progress {
   flex: none;
   padding: 6px 10px;

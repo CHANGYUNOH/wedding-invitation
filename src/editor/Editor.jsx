@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { wedding as currentConfig } from '../config/wedding.js'
 import { copyText } from '../lib/clipboard.js'
 import { Toaster, toast } from '../components/Toast.jsx'
@@ -223,16 +223,57 @@ export default function Editor() {
     if (saved) toast('작성하던 내용을 불러왔어요.')
   }, [saved])
 
+  const draftRef = useRef(draft)
+  draftRef.current = draft
+  const dirtyRef = useRef(false) // 아직 저장하지 않은 변경이 있는지
+
+  // 지금 내용을 이 브라우저에 저장한다.
+  const persist = useCallback(() => {
+    if (!draftRef.current) return false
+    const ok = saveDraft(draftRef.current)
+    setSaveFailed(!ok)
+    if (ok) {
+      dirtyRef.current = false
+      setSavedAt(new Date().toISOString())
+    }
+    return ok
+  }, [])
+
+  // 저장 버튼·Ctrl+S: 바로 저장하고 결과를 알려준다.
+  const saveNow = useCallback(() => {
+    toast(
+      persist()
+        ? '저장했어요. 이 브라우저에서 다시 열면 이어서 작성할 수 있어요.'
+        : '저장하지 못했어요. 시크릿 모드이거나 저장 공간이 막혀 있는지 확인해주세요.',
+    )
+  }, [persist])
+
   // 입력이 멈추면 이 브라우저에 자동 저장한다.
   useEffect(() => {
     if (!draft) return
-    const timer = setTimeout(() => {
-      const ok = saveDraft(draft)
-      setSaveFailed(!ok)
-      if (ok) setSavedAt(new Date().toISOString())
-    }, 400)
+    dirtyRef.current = true
+    const timer = setTimeout(persist, 400)
     return () => clearTimeout(timer)
-  }, [draft])
+  }, [draft, persist])
+
+  // 자동 저장을 기다리는 사이에 창을 닫거나 다른 앱으로 넘어가도 내용이 남게 한다.
+  useEffect(() => {
+    const flush = () => dirtyRef.current && persist()
+    const onHide = () => document.visibilityState === 'hidden' && flush()
+    const onKey = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 's') return
+      e.preventDefault()
+      if (draftRef.current) saveNow()
+    }
+    window.addEventListener('pagehide', flush)
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('pagehide', flush)
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [persist, saveNow])
 
   useEffect(() => {
     if (!previewOpen) return
@@ -259,6 +300,8 @@ export default function Editor() {
     if (!window.confirm('입력한 내용을 모두 지우고 처음으로 돌아갈까요?')) return
     clearDraft()
     clearMedia()
+    dirtyRef.current = false
+    draftRef.current = null // 지운 직후 창을 닫아도 다시 저장되지 않게 한다
     setDraft(null)
     setSavedAt(null)
     window.scrollTo(0, 0)
@@ -277,7 +320,7 @@ export default function Editor() {
   const savedLabel = saveFailed
     ? '이 브라우저에서는 자동 저장이 안 돼요'
     : savedAt
-      ? `자동 저장됨 · ${new Date(savedAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}`
+      ? `저장됨 ·${new Date(savedAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}`
       : ''
 
   return (
@@ -290,9 +333,14 @@ export default function Editor() {
               {savedLabel}
             </p>
           </div>
-          <span className="ed-progress">
-            필수 {required.filter((c) => c.ok).length}/{required.length}
-          </span>
+          <div className="ed-header__actions">
+            <span className="ed-progress">
+              필수 {required.filter((c) => c.ok).length}/{required.length}
+            </span>
+            <button type="button" className="ed-btn ed-btn--sm ed-btn--primary" title="저장 (Ctrl+S)" onClick={saveNow}>
+              저장
+            </button>
+          </div>
         </div>
         <nav className="ed-nav" aria-label="입력 단계">
           {SECTIONS.map(({ id, label, required: req }) => {
