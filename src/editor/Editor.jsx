@@ -1,8 +1,20 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { wedding as currentConfig } from '../config/wedding.js'
+import { wedding as publicConfig } from '../config/wedding.js'
+import { withPrivate } from '../config/private.js'
 import { copyText } from '../lib/clipboard.js'
 import { Toaster, toast } from '../components/Toast.jsx'
-import { blankDraft, checklist, clearDraft, draftFromConfig, loadDraft, saveDraft, toPreviewConfig } from './draft.js'
+import {
+  alreadyFilledFrom,
+  blankDraft,
+  checklist,
+  clearDraft,
+  draftFromConfig,
+  fillBlanks,
+  loadDraft,
+  markFilledFrom,
+  saveDraft,
+  toPreviewConfig,
+} from './draft.js'
 import { toWeddingJs } from './exportConfig.js'
 import { saveFile } from './saveFile.js'
 import PreviewFrame from './Preview.jsx'
@@ -20,6 +32,30 @@ import {
   ShareSection,
   TransportSection,
 } from './sections.jsx'
+
+// 지금 청첩장에 보이는 내용 그대로(실명·계좌 포함) 편집을 시작할 수 있게, 빌드할 때 넣어준 비공개 정보를 합친다.
+const currentConfig = withPrivate(publicConfig, __WEDDING_PRIVATE__)
+
+// 편집 화면을 열 때의 내용. 지금 청첩장 내용이 바뀐 뒤 처음 열면, 작성하던 내용의 빈칸을 그 값으로 채운다.
+// 작성하던 내용이 없으면 지금 청첩장 내용으로 바로 시작한다. (같은 내용으로는 한 번만 한다)
+// 개발 모드에서는 React가 초기화 함수를 두 번 부르므로, 한 번 계산한 결과를 다시 쓴다.
+let initialCache = null
+const initialDraft = () => (initialCache ??= computeInitialDraft())
+
+function computeInitialDraft() {
+  const saved = loadDraft()
+  const base = draftFromConfig(currentConfig)
+  const fresh = !alreadyFilledFrom(base)
+  if (fresh) markFilledFrom(base)
+  if (!saved) return { draft: fresh ? base : null, savedAt: null, notice: fresh ? '지금 청첩장 내용을 불러왔어요.' : '' }
+  const mine = draftFromConfig(saved.draft)
+  const { draft, filled } = fresh ? fillBlanks(mine, base) : { draft: mine, filled: 0 }
+  return {
+    draft,
+    savedAt: saved.savedAt,
+    notice: filled ? '작성하던 내용을 불러오고, 빈칸은 지금 청첩장 내용으로 채웠어요.' : '작성하던 내용을 불러왔어요.',
+  }
+}
 
 // 'groom.name' 같은 경로의 값을 바꾼 새 객체를 돌려준다. value가 함수면 이전 값을 받아 계산한다.
 function setIn(obj, path, value) {
@@ -119,7 +155,7 @@ function Intro({ onBlank, onCurrent }) {
 
 // ---------- 마무리 ----------
 
-function Finish({ draft, checks, onReset }) {
+function Finish({ draft, checks, onReset, onLoadCurrent }) {
   const missing = checks.filter((c) => c.required && !c.ok)
   const photoCount = (draft.photos.cover ? 1 : 0) + draft.photos.gallery.length
   const hasMusic = draft.bgm === 'upload' && Boolean(draft.bgmFile)
@@ -202,9 +238,14 @@ function Finish({ draft, checks, onReset }) {
         </ol>
       </details>
 
-      <button type="button" className="ed-link ed-link--danger" onClick={onReset}>
-        처음부터 다시 하기
-      </button>
+      <div className="ed-finish__links">
+        <button type="button" className="ed-link" onClick={onLoadCurrent}>
+          지금 청첩장 내용 불러오기
+        </button>
+        <button type="button" className="ed-link ed-link--danger" onClick={onReset}>
+          처음부터 다시 하기
+        </button>
+      </div>
     </section>
   )
 }
@@ -212,16 +253,16 @@ function Finish({ draft, checks, onReset }) {
 // ---------- 편집 화면 ----------
 
 export default function Editor() {
-  const [saved] = useState(loadDraft)
-  const [draft, setDraft] = useState(() => (saved ? draftFromConfig(saved.draft) : null))
-  const [savedAt, setSavedAt] = useState(saved?.savedAt ?? null)
+  const [initial] = useState(initialDraft)
+  const [draft, setDraft] = useState(initial.draft)
+  const [savedAt, setSavedAt] = useState(initial.savedAt)
   const [saveFailed, setSaveFailed] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
   const wide = useMediaQuery('(min-width: 1024px)')
 
   useEffect(() => {
-    if (saved) toast('작성하던 내용을 불러왔어요.')
-  }, [saved])
+    if (initial.notice) toast(initial.notice)
+  }, [initial])
 
   const draftRef = useRef(draft)
   draftRef.current = draft
@@ -296,6 +337,16 @@ export default function Editor() {
     setDraft(next)
     window.scrollTo(0, 0)
   }
+  // 작성 중인 글을 지금 배포된 청첩장 내용으로 바꾼다. 첨부한 사진·음악은 그대로 둔다.
+  const loadCurrent = () => {
+    if (!window.confirm('작성 중인 글을 지금 청첩장 내용으로 바꿀까요? 첨부한 사진과 음악은 그대로 남아요.')) return
+    setDraft((d) => {
+      const next = draftFromConfig(currentConfig)
+      return { ...next, photos: d.photos, ...(d.bgm === 'upload' ? { bgm: d.bgm, bgmFile: d.bgmFile } : {}) }
+    })
+    window.scrollTo(0, 0)
+    toast('지금 청첩장 내용을 불러왔어요.')
+  }
   const reset = () => {
     if (!window.confirm('입력한 내용을 모두 지우고 처음으로 돌아갈까요?')) return
     clearDraft()
@@ -366,7 +417,7 @@ export default function Editor() {
               <Connector />
             </Fragment>
           ))}
-          <Finish draft={draft} checks={checks} onReset={reset} />
+          <Finish draft={draft} checks={checks} onReset={reset} onLoadCurrent={loadCurrent} />
         </main>
 
         {wide && (

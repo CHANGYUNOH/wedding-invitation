@@ -99,6 +99,71 @@ export function draftFromConfig(config) {
   }
 }
 
+// 작성 중인 내용에서 비어 있는 칸만 base(지금 청첩장 내용)의 값으로 채운다. 이미 적은 값은 건드리지 않는다.
+// 디자인·사진·음악과, 비워두면 자동으로 만들어지는 공유 문구는 그대로 둔다.
+// 돌려주는 값: { draft, filled } — filled 는 채운 칸의 수.
+export function fillBlanks(draft, base) {
+  let filled = 0
+  const text = (mine, theirs) => {
+    if (typeof mine === 'string' ? mine.trim() : mine != null) return mine
+    if (typeof theirs === 'string' ? !theirs.trim() : theirs == null) return mine
+    filled++
+    return theirs
+  }
+  const list = (mine, theirs, hasContent) => {
+    if (mine.some(hasContent) || !theirs.some(hasContent)) return mine
+    filled++
+    return theirs
+  }
+  const fields = (mine, theirs, keys) => Object.fromEntries(keys.map((k) => [k, text(mine[k], theirs[k])]))
+  const host = (key) => ({ ...draft[key], ...fields(draft[key], base[key], ['name', 'shortName', 'father', 'mother']) })
+  const hasNumber = (a) => a.number.trim()
+  const next = {
+    ...draft,
+    groom: host('groom'),
+    bride: host('bride'),
+    datetime: text(draft.datetime, base.datetime),
+    venue: {
+      ...draft.venue,
+      ...fields(draft.venue, base.venue, ['name', 'hall', 'address', 'tel', 'lat', 'lng', 'naverMapUrl']),
+      transport: list(draft.venue.transport, base.venue.transport, (t) => t.lines.some((l) => l.trim())),
+    },
+    cover: { ...draft.cover, ...fields(draft.cover, base.cover, ['caption']) },
+    greeting: {
+      title: text(draft.greeting.title, base.greeting.title),
+      message: list(draft.greeting.message, base.greeting.message, (l) => l.trim()),
+    },
+    accounts: {
+      groom: list(draft.accounts.groom, base.accounts.groom, hasNumber),
+      bride: list(draft.accounts.bride, base.accounts.bride, hasNumber),
+    },
+    share: { ...draft.share, ...fields(draft.share, base.share, ['image', 'siteUrl']) },
+  }
+  return { draft: filled ? next : draft, filled }
+}
+
+const FILLED_KEY = 'wedding-editor:filled'
+// 같은 청첩장 내용으로는 한 번만 채우도록, 채운 내용의 지문을 기억해 둔다.
+const fingerprint = (base) => {
+  let h = 5381
+  for (const ch of JSON.stringify(base)) h = ((h * 33) ^ ch.charCodeAt(0)) >>> 0
+  return String(h)
+}
+export function alreadyFilledFrom(base) {
+  try {
+    return localStorage.getItem(FILLED_KEY) === fingerprint(base)
+  } catch {
+    return true
+  }
+}
+export function markFilledFrom(base) {
+  try {
+    localStorage.setItem(FILLED_KEY, fingerprint(base))
+  } catch {
+    // 저장소를 쓸 수 없으면 기억하지 않는다.
+  }
+}
+
 export function loadDraft() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY))

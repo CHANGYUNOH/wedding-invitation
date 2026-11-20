@@ -129,6 +129,18 @@ button {
   color: var(--ed-warn);
 }
 
+.ed-finish__links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 20px;
+  margin-top: 12px;
+}
+
+.ed-finish__links .ed-link {
+  margin-top: 0;
+}
+
 .ed-icon-btn {
   display: grid;
   flex: none;
