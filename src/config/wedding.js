@@ -107,7 +107,7 @@ export const wedding = {
   share: {
     title: '저희 결혼합니다',
     description: '2027년 4월 24일 토요일 오후 3시, 아만티호텔서울 웨딩 2층',
-    image: 'images/og.png?v=3',
+    image: 'images/og.jpg?v=1',
     siteUrl: 'https://wedding-card-invitation-mobile.vercel.app',
   },
 }

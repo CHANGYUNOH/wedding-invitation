@@ -94,6 +94,15 @@
   color: var(--color-text-muted);
 }
 
+/* 위에서부터 차례로 쌓는 표지는 화면 높이에 맞춰 늘리지 않는다.
+   화면이 길 때 안내 화살표 위로 긴 빈칸이 생기기 때문이다. */
+.cover--arch,
+.cover--frame,
+.cover--type,
+.cover--magazine {
+  min-height: 0;
+}
+
 .cover__scroll {
   margin-top: auto;
   padding-top: 28px;

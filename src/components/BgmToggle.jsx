@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { asset } from '../lib/asset.js'
+import { usePreview } from '../lib/wedding-context.jsx'
 import { toast } from './Toast.jsx'
 import './BgmToggle.css'
 
@@ -7,6 +8,24 @@ export default function BgmToggle({ src }) {
   const audioRef = useRef(null)
   const [playing, setPlaying] = useState(false)
   const [failed, setFailed] = useState(false)
+  const preview = usePreview()
+
+  // 청첩장을 열면 음악을 바로 튼다. 브라우저는 소리 나는 자동재생을 대부분 막으므로,
+  // 막히면 화면을 처음 누르는 순간에 시작한다. 편집 페이지의 미리보기에서는 자동으로 틀지 않는다.
+  useEffect(() => {
+    const audio = audioRef.current
+    if (!audio || preview) return
+    const events = ['pointerdown', 'touchend', 'keydown']
+    const stop = () => events.forEach((e) => window.removeEventListener(e, onGesture, true))
+    const onGesture = (e) => {
+      // 음악 버튼을 직접 누른 경우는 버튼이 처리한다.
+      if (e.target instanceof Element && e.target.closest('.bgm')) return stop()
+      // 화면을 미는 동작은 브라우저가 인정하지 않을 수 있어, 재생에 성공할 때까지 기다린다.
+      audio.play().then(stop, () => {})
+    }
+    audio.play().catch(() => events.forEach((e) => window.addEventListener(e, onGesture, true)))
+    return stop
+  }, [src, preview])
 
   if (!src || failed) return null
 
