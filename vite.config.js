@@ -66,8 +66,8 @@ export default defineConfig({
   define: { __WEDDING_PRIVATE__: JSON.stringify(privateWedding) },
   build: {
     rolldownOptions: {
-      // 하객용 청첩장(index.html)과 정보 입력 페이지(edit.html)를 따로 빌드한다.
-      input: { main: page('./index.html'), edit: page('./edit.html') },
+      // 하객용 청첩장(index.html), 정보 입력 페이지(edit.html), 참석 의사 확인 페이지(admin.html)를 따로 빌드한다.
+      input: { main: page('./index.html'), edit: page('./edit.html'), admin: page('./admin.html') },
     },
   },
 })

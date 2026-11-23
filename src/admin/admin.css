@@ -1,0 +1,221 @@
+/* 참석 의사 확인 화면. 색·버튼·입력칸은 편집 페이지(editor.css)의 것을 그대로 쓴다. */
+
+.ad-login {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  max-width: 360px;
+  min-height: 100vh;
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: 24px 20px;
+  justify-content: center;
+}
+
+.ad-login__title {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.ad-login__desc {
+  margin-bottom: 6px;
+  color: var(--ed-sub);
+}
+
+.ad-login__error {
+  color: var(--ed-warn);
+  font-size: 14px;
+}
+
+.ad {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 24px 16px 56px;
+}
+
+.ad-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.ad-head__title {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.ad-head__sub {
+  color: var(--ed-muted);
+  font-size: 13px;
+}
+
+.ad-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 20px 0 0;
+}
+
+.ad-stat {
+  margin: 0;
+  padding: 14px 16px;
+  border: 1px solid var(--ed-line);
+  border-radius: 12px;
+  background: var(--ed-surface);
+}
+
+.ad-stat--main {
+  grid-column: 1 / -1;
+  border-color: var(--ed-primary);
+  background: var(--ed-primary-soft);
+}
+
+.ad-stat dt {
+  color: var(--ed-sub);
+  font-size: 13px;
+}
+
+.ad-stat dd {
+  margin: 2px 0 0;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.ad-stat--main dd {
+  font-size: 30px;
+  color: var(--ed-primary-dark);
+}
+
+.ad-stat small {
+  color: var(--ed-muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.ad-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 24px;
+}
+
+.ad-filter {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: var(--ed-radius);
+  background: var(--ed-track);
+}
+
+.ad-filter__btn {
+  height: 32px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 8px;
+  background: none;
+  color: var(--ed-sub);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ad-filter__btn.is-on {
+  background: var(--ed-surface);
+  color: var(--ed-text);
+  box-shadow: 0 1px 2px rgba(31, 36, 48, 0.12);
+}
+
+.ad-list {
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--ed-line);
+  border-radius: 12px;
+  background: var(--ed-surface);
+}
+
+.ad-row {
+  padding: 14px 16px;
+}
+
+.ad-row + .ad-row {
+  border-top: 1px solid var(--ed-line);
+}
+
+.ad-row__main {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ad-row__main strong {
+  font-size: 16px;
+  overflow-wrap: anywhere;
+}
+
+.ad-row.is-declined strong {
+  color: var(--ed-sub);
+  font-weight: 500;
+}
+
+.ad-row__side {
+  flex: none;
+  color: var(--ed-muted);
+  font-size: 13px;
+}
+
+.ad-row__detail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.ad-row__detail time {
+  margin-left: auto;
+  color: var(--ed-muted);
+  font-size: 12px;
+}
+
+.ad-tag {
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--ed-track);
+  color: var(--ed-sub);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ad-tag--ok {
+  background: var(--ed-ok-soft);
+  color: var(--ed-ok);
+}
+
+.ad-tag--no {
+  background: var(--ed-warn-soft);
+  color: var(--ed-warn);
+}
+
+.ad-empty {
+  margin-top: 12px;
+  padding: 40px 16px;
+  border: 1px dashed var(--ed-line-strong);
+  border-radius: 12px;
+  color: var(--ed-muted);
+  text-align: center;
+}
+
+.ad-note {
+  margin-top: 16px;
+  color: var(--ed-muted);
+  font-size: 13px;
+}
+
+@media (min-width: 560px) {
+  .ad-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}

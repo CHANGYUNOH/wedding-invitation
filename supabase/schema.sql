@@ -1,5 +1,5 @@
 -- Supabase 대시보드 > SQL Editor 에 붙여넣고 한 번 실행하세요. (여러 번 실행해도 안전합니다)
--- 하객(anon)은 RSVP를 제출만 할 수 있고 조회는 대시보드(Table Editor)에서만 가능합니다.
+-- 하객(anon)은 RSVP를 제출만 할 수 있고, 조회는 대시보드(Table Editor)나 관리 화면(/admin, 비밀번호 필요)에서 합니다.
 -- 방명록 비밀번호는 bcrypt 해시로만 저장되며 브라우저로 내려가지 않습니다.
 
 create extension if not exists pgcrypto with schema extensions;
@@ -86,3 +86,59 @@ revoke all on function public.add_guestbook(text, text, text) from public;
 revoke all on function public.delete_guestbook(bigint, text) from public;
 grant execute on function public.add_guestbook(text, text, text) to anon, authenticated;
 grant execute on function public.delete_guestbook(bigint, text) to anon, authenticated;
+
+-- ---------- 관리 화면 (/admin): 신랑·신부가 참석 의사를 조회 ----------
+-- 관리 비밀번호는 bcrypt 해시로만 저장한다. 이 표는 누구에게도 권한을 주지 않아 함수로만 쓰인다.
+
+create table if not exists public.admin_settings (
+  id             int primary key default 1 check (id = 1),
+  password_hash  text not null,
+  updated_at     timestamptz not null default now()
+);
+
+alter table public.admin_settings enable row level security;
+revoke all on public.admin_settings from anon, authenticated;
+
+-- 비밀번호 정하기·바꾸기: SQL Editor 에서만 실행할 수 있다.
+--   select public.set_admin_password('여기에-비밀번호');
+create or replace function public.set_admin_password(p_password text)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  if p_password is null or char_length(p_password) < 4 then
+    raise exception '관리 비밀번호는 4자 이상으로 정해주세요.';
+  end if;
+  insert into public.admin_settings (id, password_hash)
+  values (1, crypt(p_password, gen_salt('bf', 10)))
+  on conflict (id) do update set password_hash = excluded.password_hash, updated_at = now();
+end;
+$$;
+
+-- 비밀번호가 맞으면 참석 의사 전체를 최신순으로 돌려준다. 읽기 전용.
+create or replace function public.list_rsvp(p_password text)
+returns setof public.rsvp
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  ok boolean;
+begin
+  select password_hash = crypt(coalesce(p_password, ''), password_hash) into ok
+  from public.admin_settings where id = 1;
+
+  if ok is not true then
+    perform pg_sleep(1); -- 비밀번호를 마구 넣어보는 시도를 늦춘다
+    raise exception '비밀번호가 올바르지 않습니다.';
+  end if;
+
+  return query select * from public.rsvp order by created_at desc, id desc;
+end;
+$$;
+
+revoke all on function public.set_admin_password(text) from public, anon, authenticated;
+revoke all on function public.list_rsvp(text) from public;
+grant execute on function public.list_rsvp(text) to anon, authenticated;

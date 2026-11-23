@@ -115,3 +115,9 @@ export async function deleteGuestbook({ id, password }) {
   local.write('guestbook', rows.filter((r) => r.id !== id))
   return true
 }
+
+// 관리 화면(/admin): 비밀번호가 맞으면 참석 의사 전체를 최신순으로 돌려준다. 틀리면 오류를 던진다.
+export async function fetchRsvpList(password) {
+  if (!isLocalMode) return request('rpc/list_rsvp', { body: { p_password: password } })
+  return local.read('rsvp').sort((a, b) => b.created_at.localeCompare(a.created_at))
+}

@@ -11,8 +11,9 @@ function AccountGroup({ label, side, items }) {
   const [open, setOpen] = useState(false)
   const panelId = `account-${side}`
 
-  const copy = async ({ bank, number, name }) => {
-    const ok = await copyText(`${bank} ${number} ${name}`)
+  // 은행 앱의 계좌번호 칸에 바로 붙여넣을 수 있게 숫자만 복사한다 (은행·예금주·하이픈 제외).
+  const copy = async ({ number }) => {
+    const ok = await copyText(number.replace(/\D/g, '') || number)
     toast(ok ? '계좌번호가 복사되었습니다.' : '복사하지 못했습니다. 계좌번호를 길게 눌러 복사해주세요.')
   }
 
