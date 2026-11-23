@@ -231,3 +231,36 @@
   color: var(--ed-muted);
   text-align: center;
 }
+
+.ad-tabs {
+  display: flex;
+  margin-top: 16px;
+}
+
+.ad-tabs .ad-filter__btn {
+  flex: 1;
+  height: 38px;
+}
+
+.ad-book__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.ad-book__head time {
+  color: var(--ed-muted);
+  font-size: 12px;
+}
+
+.ad-book__delete {
+  flex: none;
+  margin-left: auto;
+  color: var(--ed-warn);
+}
+
+.ad-book__message {
+  margin-top: 6px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

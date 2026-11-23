@@ -142,3 +142,31 @@ $$;
 revoke all on function public.set_admin_password(text) from public, anon, authenticated;
 revoke all on function public.list_rsvp(text) from public;
 grant execute on function public.list_rsvp(text) to anon, authenticated;
+
+-- 관리 화면에서 방명록 글 지우기: 글쓴이 비밀번호 대신 관리 비밀번호로 지운다.
+create or replace function public.admin_delete_guestbook(p_password text, p_id bigint)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  ok boolean;
+  deleted int;
+begin
+  select password_hash = crypt(coalesce(p_password, ''), password_hash) into ok
+  from public.admin_settings where id = 1;
+
+  if ok is not true then
+    perform pg_sleep(1);
+    raise exception '비밀번호가 올바르지 않습니다.';
+  end if;
+
+  delete from public.guestbook where id = p_id;
+  get diagnostics deleted = row_count;
+  return deleted > 0;
+end;
+$$;
+
+revoke all on function public.admin_delete_guestbook(text, bigint) from public;
+grant execute on function public.admin_delete_guestbook(text, bigint) to anon, authenticated;

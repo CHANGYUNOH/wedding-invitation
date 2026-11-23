@@ -121,3 +121,23 @@ export async function fetchRsvpList(password) {
   if (!isLocalMode) return request('rpc/list_rsvp', { body: { p_password: password } })
   return local.read('rsvp').sort((a, b) => b.created_at.localeCompare(a.created_at))
 }
+
+// 관리 화면: 방명록 전체를 최신순으로 가져온다. (방명록은 누구나 읽을 수 있어 비밀번호가 필요 없다)
+export async function fetchGuestbookAll() {
+  if (!isLocalMode) return request('guestbook?select=id,name,message,created_at&order=created_at.desc,id.desc')
+  return local
+    .read('guestbook')
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+    .map(({ password: _password, ...rest }) => rest)
+}
+
+// 관리 화면: 관리 비밀번호로 방명록 글을 지운다. 지웠으면 true, 이미 없는 글이면 false.
+export async function adminDeleteGuestbook({ id, password }) {
+  if (!isLocalMode) {
+    const deleted = await request('rpc/admin_delete_guestbook', { body: { p_password: password, p_id: id } })
+    return deleted === true
+  }
+  const rows = local.read('guestbook')
+  local.write('guestbook', rows.filter((r) => r.id !== id))
+  return rows.some((r) => r.id === id)
+}
