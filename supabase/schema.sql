@@ -316,3 +316,57 @@ revoke all on function public.clear_rsvp_notification() from public, anon, authe
 revoke all on function public.send_telegram(text) from public, anon, authenticated;
 revoke all on function public.test_rsvp_notification() from public, anon, authenticated;
 revoke all on function public.notify_rsvp() from public, anon, authenticated;
+
+-- 참석 의사가 지워졌을 때도 알린다 (관리 화면에서 지우든 대시보드에서 지우든).
+create or replace function public.notify_rsvp_deleted()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  total int;
+  line text;
+begin
+  select coalesce(sum(headcount), 0) into total from public.rsvp where attending;
+
+  line := case old.side when 'groom' then '신랑측' else '신부측' end || ' ' || old.name || ' · '
+    || case when old.attending then '참석 ' || old.headcount || '명' else '불참' end;
+
+  perform public.send_telegram('[응답 삭제] ' || line || E'\n지금까지 참석 ' || total || '명');
+  return old;
+exception when others then
+  -- 알림이 실패해도 삭제는 그대로 진행되게 한다.
+  return old;
+end;
+$$;
+
+drop trigger if exists rsvp_notify_deleted on public.rsvp;
+create trigger rsvp_notify_deleted
+  after delete on public.rsvp
+  for each row execute function public.notify_rsvp_deleted();
+
+revoke all on function public.notify_rsvp_deleted() from public, anon, authenticated;
+
+-- 방명록에 새 글이 올라오면 알린다 (장난 글·광고를 바로 보고 지울 수 있게).
+create or replace function public.notify_guestbook()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  perform public.send_telegram('[방명록] ' || new.name || E'\n' || new.message);
+  return new;
+exception when others then
+  -- 알림이 실패해도 글은 그대로 저장되게 한다.
+  return new;
+end;
+$$;
+
+drop trigger if exists guestbook_notify on public.guestbook;
+create trigger guestbook_notify
+  after insert on public.guestbook
+  for each row execute function public.notify_guestbook();
+
+revoke all on function public.notify_guestbook() from public, anon, authenticated;
