@@ -1,5 +1,5 @@
 // 신랑·신부가 참석 의사를 확인하는 화면. 비밀번호가 맞아야 서버가 목록을 내려주며, 읽기 전용이다.
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { fetchRsvpList } from '../lib/api.js'
 import { Toaster, toast } from '../components/Toast.jsx'
 import { saveFile } from '../editor/saveFile.js'
@@ -11,6 +11,26 @@ const FILTERS = [
   { id: 'groom', label: '신랑측' },
   { id: 'bride', label: '신부측' },
 ]
+
+// 새로고침해도 다시 묻지 않도록 비밀번호를 이 탭에만 기억한다. 탭을 닫으면 지워진다.
+const SESSION_KEY = 'wedding-admin:password'
+const remembered = {
+  get() {
+    try {
+      return sessionStorage.getItem(SESSION_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  },
+  set(value) {
+    try {
+      if (value) sessionStorage.setItem(SESSION_KEY, value)
+      else sessionStorage.removeItem(SESSION_KEY)
+    } catch {
+      // 저장소를 쓸 수 없으면 새로고침할 때 다시 입력하면 된다.
+    }
+  },
+}
 
 const formatWhen = (iso) =>
   new Date(iso).toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: 'numeric', minute: '2-digit' })
@@ -85,8 +105,9 @@ function Login({ onLogin, loading, error }) {
 }
 
 export default function Admin() {
-  // 비밀번호는 이 화면이 열려 있는 동안만 기억한다 (새로고침하면 다시 입력).
   const [password, setPassword] = useState('')
+  // 기억해 둔 비밀번호가 있으면 입력 화면 대신 불러오는 중 화면부터 보여준다.
+  const [restoring, setRestoring] = useState(() => Boolean(remembered.get()))
   const [rows, setRows] = useState(null)
   const [loadedAt, setLoadedAt] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -101,16 +122,38 @@ export default function Admin() {
       setRows(list ?? [])
       setPassword(pw)
       setLoadedAt(new Date())
+      remembered.set(pw)
       return true
     } catch (err) {
       console.error(err)
-      setError(
-        /비밀번호/.test(err.message) ? '비밀번호가 올바르지 않아요.' : '목록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.',
-      )
+      const wrong = /비밀번호/.test(err.message)
+      // 비밀번호가 바뀌었으면 기억해 둔 값을 지워 다시 입력받는다.
+      if (wrong) remembered.set('')
+      setError(wrong ? '비밀번호가 올바르지 않아요.' : '목록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.')
       return false
     } finally {
       setLoading(false)
     }
+  }
+
+  // 새로고침한 경우: 기억해 둔 비밀번호로 바로 불러온다.
+  useEffect(() => {
+    const saved = remembered.get()
+    if (!saved) return
+    let stale = false
+    load(saved).finally(() => !stale && setRestoring(false))
+    return () => {
+      stale = true
+    }
+    // 화면이 처음 열릴 때 한 번만 실행한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  const logout = () => {
+    remembered.set('')
+    setPassword('')
+    setRows(null)
+    setError('')
   }
 
   const refresh = async () => {
@@ -120,6 +163,10 @@ export default function Admin() {
 
   const summary = useMemo(() => summarize(rows ?? []), [rows])
   const shown = useMemo(() => (rows ?? []).filter((r) => filter === 'all' || r.side === filter), [rows, filter])
+
+  if (!rows && restoring) {
+    return <p className="ad-loading">불러오는 중…</p>
+  }
 
   if (!rows) {
     return (
@@ -145,9 +192,14 @@ export default function Admin() {
             응답 {rows.length}건{loadedAt && ` · ${formatWhen(loadedAt)} 기준`}
           </p>
         </div>
-        <button type="button" className="ed-btn ed-btn--sm" onClick={refresh} disabled={loading}>
-          {loading ? '불러오는 중…' : '새로고침'}
-        </button>
+        <div className="ad-head__actions">
+          <button type="button" className="ed-btn ed-btn--sm" onClick={refresh} disabled={loading}>
+            {loading ? '불러오는 중…' : '새로고침'}
+          </button>
+          <button type="button" className="ed-btn ed-btn--sm" onClick={logout}>
+            나가기
+          </button>
+        </div>
       </header>
 
       <dl className="ad-stats">
