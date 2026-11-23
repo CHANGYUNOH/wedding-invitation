@@ -1,5 +1,5 @@
 -- Supabase 대시보드 > SQL Editor 에 붙여넣고 한 번 실행하세요. (여러 번 실행해도 안전합니다)
--- 하객(anon)은 RSVP를 제출만 할 수 있고, 조회는 대시보드(Table Editor)나 관리 화면(/admin, 비밀번호 필요)에서 합니다.
+-- 하객(anon)은 RSVP를 제출만 할 수 있고, 조회·삭제는 대시보드(Table Editor)나 관리 화면(/admin, 비밀번호 필요)에서 합니다.
 -- 방명록 비밀번호는 bcrypt 해시로만 저장되며 브라우저로 내려가지 않습니다.
 
 create extension if not exists pgcrypto with schema extensions;
@@ -170,3 +170,31 @@ $$;
 
 revoke all on function public.admin_delete_guestbook(text, bigint) from public;
 grant execute on function public.admin_delete_guestbook(text, bigint) to anon, authenticated;
+
+-- 관리 화면에서 참석 의사 지우기 (잘못 들어온 응답·중복 응답 정리용).
+create or replace function public.admin_delete_rsvp(p_password text, p_id bigint)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  ok boolean;
+  deleted int;
+begin
+  select password_hash = crypt(coalesce(p_password, ''), password_hash) into ok
+  from public.admin_settings where id = 1;
+
+  if ok is not true then
+    perform pg_sleep(1);
+    raise exception '비밀번호가 올바르지 않습니다.';
+  end if;
+
+  delete from public.rsvp where id = p_id;
+  get diagnostics deleted = row_count;
+  return deleted > 0;
+end;
+$$;
+
+revoke all on function public.admin_delete_rsvp(text, bigint) from public;
+grant execute on function public.admin_delete_rsvp(text, bigint) to anon, authenticated;

@@ -141,3 +141,14 @@ export async function adminDeleteGuestbook({ id, password }) {
   local.write('guestbook', rows.filter((r) => r.id !== id))
   return rows.some((r) => r.id === id)
 }
+
+// 관리 화면: 관리 비밀번호로 참석 의사 한 건을 지운다. 지웠으면 true, 이미 없으면 false.
+export async function adminDeleteRsvp({ id, password }) {
+  if (!isLocalMode) {
+    const deleted = await request('rpc/admin_delete_rsvp', { body: { p_password: password, p_id: id } })
+    return deleted === true
+  }
+  const rows = local.read('rsvp')
+  local.write('rsvp', rows.filter((r) => r.id !== id))
+  return rows.some((r) => r.id === id)
+}

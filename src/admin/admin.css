@@ -264,3 +264,9 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+.ad-row__delete {
+  flex: none;
+  margin-left: auto;
+  color: var(--ed-warn);
+}
