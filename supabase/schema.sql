@@ -198,3 +198,121 @@ $$;
 
 revoke all on function public.admin_delete_rsvp(text, bigint) from public;
 grant execute on function public.admin_delete_rsvp(text, bigint) to anon, authenticated;
+
+-- ---------- 참석 의사 알림 (텔레그램) ----------
+-- 새 참석 의사가 저장되면 텔레그램 봇으로 메시지를 보낸다. 설정하지 않으면 아무 일도 하지 않는다.
+-- 봇 토큰은 이 표에만 저장하며, 누구에게도 권한을 주지 않아 아래 함수로만 쓰인다.
+
+create extension if not exists pg_net;
+
+create table if not exists public.notify_settings (
+  id                int primary key default 1 check (id = 1),
+  telegram_token    text not null,
+  telegram_chat_id  text not null,
+  updated_at        timestamptz not null default now()
+);
+
+alter table public.notify_settings enable row level security;
+revoke all on public.notify_settings from anon, authenticated;
+
+-- 알림 켜기·바꾸기: SQL Editor 에서만 실행할 수 있다.
+--   select public.set_rsvp_notification('봇-토큰', '채팅-ID');
+create or replace function public.set_rsvp_notification(p_token text, p_chat_id text)
+returns void
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+begin
+  if coalesce(trim(p_token), '') = '' or coalesce(trim(p_chat_id), '') = '' then
+    raise exception '봇 토큰과 채팅 ID를 모두 넣어주세요.';
+  end if;
+  insert into public.notify_settings (id, telegram_token, telegram_chat_id)
+  values (1, trim(p_token), trim(p_chat_id))
+  on conflict (id) do update
+    set telegram_token = excluded.telegram_token,
+        telegram_chat_id = excluded.telegram_chat_id,
+        updated_at = now();
+end;
+$$;
+
+-- 알림 끄기: select public.clear_rsvp_notification();
+create or replace function public.clear_rsvp_notification()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from public.notify_settings where id = 1;
+$$;
+
+-- 텔레그램으로 한 줄 보내기. 설정이 없으면 false. 전송은 pg_net 이 뒤에서 처리한다.
+create or replace function public.send_telegram(p_text text)
+returns boolean
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  cfg public.notify_settings;
+begin
+  select * into cfg from public.notify_settings where id = 1;
+  if not found then
+    return false;
+  end if;
+  perform net.http_post(
+    url := 'https://api.telegram.org/bot' || cfg.telegram_token || '/sendMessage',
+    body := jsonb_build_object('chat_id', cfg.telegram_chat_id, 'text', p_text)
+  );
+  return true;
+end;
+$$;
+
+-- 설정 확인용: select public.test_rsvp_notification();  → 텔레그램에 시험 메시지가 온다.
+create or replace function public.test_rsvp_notification()
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select public.send_telegram('참석 의사 알림이 연결되었습니다.');
+$$;
+
+create or replace function public.notify_rsvp()
+returns trigger
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  total int;
+  line text;
+begin
+  select coalesce(sum(headcount), 0) into total from public.rsvp where attending;
+
+  line := case new.side when 'groom' then '신랑측' else '신부측' end || ' ' || new.name || ' · ';
+  if new.attending then
+    line := line || '참석 ' || new.headcount || '명 · 식사 '
+      || case new.meal when 'yes' then '함' when 'no' then '안 함' else '미정' end;
+  else
+    line := line || '불참';
+  end if;
+
+  perform public.send_telegram('[참석 의사] ' || line || E'\n지금까지 참석 ' || total || '명');
+  return new;
+exception when others then
+  -- 알림이 실패해도 하객의 제출은 그대로 저장되게 한다.
+  return new;
+end;
+$$;
+
+drop trigger if exists rsvp_notify on public.rsvp;
+create trigger rsvp_notify
+  after insert on public.rsvp
+  for each row execute function public.notify_rsvp();
+
+revoke all on function public.set_rsvp_notification(text, text) from public, anon, authenticated;
+revoke all on function public.clear_rsvp_notification() from public, anon, authenticated;
+revoke all on function public.send_telegram(text) from public, anon, authenticated;
+revoke all on function public.test_rsvp_notification() from public, anon, authenticated;
+revoke all on function public.notify_rsvp() from public, anon, authenticated;
