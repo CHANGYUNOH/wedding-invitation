@@ -135,6 +135,7 @@ VITE_SUPABASE_ANON_KEY=sb_publishable_xxxxxxxx
 
 - **키 주의**: 브라우저에 그대로 실리는 값이라 publishable/anon 키만 넣어야 합니다. secret(`service_role`) 키는 절대 넣지 마세요.
 - **응답 확인**: 대시보드 **Table Editor → rsvp**에서 봅니다 (CSV 내보내기 가능). 하객은 참석 의사를 제출만 할 수 있고 조회할 수 없습니다.
+- **편집 화면에서 바로 반영**: `/edit`에서 '저장'을 누르고 관리 비밀번호(`/admin`과 같은 것)를 넣으면 글·계좌·디자인·기본 제공 음악이 다시 배포하지 않아도 청첩장에 바로 반영됩니다. 저장한 내용은 Supabase의 `site_config`에 들어가고, 청첩장은 열릴 때 이 내용을 `wedding.js` 위에 덮어씁니다. 그래서 저장한 뒤에는 `wedding.js`의 같은 항목을 고쳐 배포해도 저장한 내용이 우선합니다. 배포된 내용으로 되돌리려면 SQL Editor에서 `select public.clear_site_config();`를 실행합니다. 사진·첨부한 음악과, 카카오톡 등에 링크를 붙였을 때 보이는 미리보기(제목·설명·이미지)는 빌드할 때 정해지므로 지금처럼 내보내기 → 배포로 바꿉니다.
 - **신랑·신부용 확인 화면**: 배포 주소 뒤에 `/admin`을 붙여 열고 비밀번호를 넣으면 참석 인원 합계와 응답 목록을 보고 엑셀(CSV)로 내려받을 수 있습니다. 잘못 들어온 응답은 한 건씩 지울 수 있습니다. "방명록" 탭에서는 글을 모아 보고, 글쓴이 비밀번호 없이 지울 수 있습니다. 비밀번호는 SQL Editor에서 `select public.set_admin_password('비밀번호');`(4자 이상)로 정하고, 같은 문장으로 언제든 바꿀 수 있습니다. 비밀번호는 해시로만 저장됩니다.
 - **참석 의사·방명록 알림(텔레그램)**: 응답이 지워지거나 방명록에 새 글이 올라올 때도 알림이 옵니다. 새 응답이 저장되면 텔레그램으로 "신랑측 홍길동 · 참석 2명 · 식사 함" 같은 메시지가 옵니다. 텔레그램에서 @BotFather로 봇을 만들어 토큰을 받고, 그 봇에게 아무 말이나 보낸 뒤 `https://api.telegram.org/bot<토큰>/getUpdates`를 열어 `chat.id`를 확인합니다. SQL Editor에서 `select public.set_rsvp_notification('토큰', '채팅ID');`로 켜고, `select public.test_rsvp_notification();`로 시험 메시지를 받아 봅니다. 끄려면 `select public.clear_rsvp_notification();`. 토큰은 Supabase에만 저장되고 git·브라우저에는 들어가지 않습니다.
 - **방명록 관리**: 이상한 글은 **Table Editor → guestbook**에서 그 줄을 지우면 청첩장에서도 사라집니다. 비밀번호는 bcrypt 해시(`password_hash`)로만 저장되고 브라우저로 내려가지 않습니다.

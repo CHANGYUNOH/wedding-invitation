@@ -1,6 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { wedding as publicConfig } from '../config/wedding.js'
-import { withPrivate } from '../config/private.js'
+import { publishSiteConfig } from '../lib/api.js'
 import { copyText } from '../lib/clipboard.js'
 import { Toaster, toast } from '../components/Toast.jsx'
 import {
@@ -10,6 +9,7 @@ import {
   clearDraft,
   draftFromConfig,
   fillBlanks,
+  finalize,
   loadDraft,
   markFilledFrom,
   saveDraft,
@@ -33,16 +33,39 @@ import {
   TransportSection,
 } from './sections.jsx'
 
-// 지금 청첩장에 보이는 내용 그대로(실명·계좌 포함) 편집을 시작할 수 있게, 빌드할 때 넣어준 비공개 정보를 합친다.
-const currentConfig = withPrivate(publicConfig, __WEDDING_PRIVATE__)
-
 // 편집 화면을 열 때의 내용. 지금 청첩장 내용이 바뀐 뒤 처음 열면, 작성하던 내용의 빈칸을 그 값으로 채운다.
 // 작성하던 내용이 없으면 지금 청첩장 내용으로 바로 시작한다. (같은 내용으로는 한 번만 한다)
 // 개발 모드에서는 React가 초기화 함수를 두 번 부르므로, 한 번 계산한 결과를 다시 쓴다.
 let initialCache = null
-const initialDraft = () => (initialCache ??= computeInitialDraft())
+const initialDraft = (currentConfig) => (initialCache ??= computeInitialDraft(currentConfig))
 
-function computeInitialDraft() {
+// "저장"할 때 쓰는 관리 비밀번호(/admin 과 같은 것)를 이 탭에만 기억한다. 탭을 닫으면 지워진다.
+const PASSWORD_KEY = 'wedding-admin:password'
+const rememberedPassword = {
+  get() {
+    try {
+      return sessionStorage.getItem(PASSWORD_KEY) ?? ''
+    } catch {
+      return ''
+    }
+  },
+  set(value) {
+    try {
+      if (value) sessionStorage.setItem(PASSWORD_KEY, value)
+      else sessionStorage.removeItem(PASSWORD_KEY)
+    } catch {
+      // 저장소를 쓸 수 없으면 저장할 때마다 다시 입력하면 된다.
+    }
+  },
+}
+
+// 청첩장에 바로 반영할 내용. 사진과 첨부한 음악은 파일이라 여기에 담지 않는다 (지금 청첩장의 것을 그대로 쓴다).
+function toLiveConfig(draft) {
+  const { bgm, ...rest } = finalize(draft)
+  return draft.bgm === 'upload' ? rest : { ...rest, bgm }
+}
+
+function computeInitialDraft(currentConfig) {
   const saved = loadDraft()
   const base = draftFromConfig(currentConfig)
   const fresh = !alreadyFilledFrom(base)
@@ -199,7 +222,10 @@ function Finish({ draft, checks, onReset, onLoadCurrent }) {
           </span>
           입력을 마쳤다면
         </h2>
-        <p className="ed-section__desc">파일로 내보내 개발자에게 전달하면 청첩장에 반영돼요.</p>
+        <p className="ed-section__desc">
+          글·계좌·디자인은 위의 ‘저장’을 누르면 청첩장에 바로 반영돼요. 사진과 첨부한 음악을 바꾸려면 파일로 내보내 개발자에게
+          전달해주세요.
+        </p>
       </header>
 
       <ul className="ed-checklist">
@@ -252,12 +278,61 @@ function Finish({ draft, checks, onReset, onLoadCurrent }) {
 
 // ---------- 편집 화면 ----------
 
-export default function Editor() {
-  const [initial] = useState(initialDraft)
+// ---------- 저장할 때 비밀번호 묻기 ----------
+
+function PasswordDialog({ error, busy, onSubmit, onClose }) {
+  const [password, setPassword] = useState('')
+  return (
+    <div className="ed-modal" role="dialog" aria-modal="true" aria-label="관리 비밀번호 입력">
+      <form
+        className="ed-modal__card"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (password) onSubmit(password)
+        }}
+      >
+        <h2 className="ed-modal__title">청첩장에 적용하기</h2>
+        <p className="ed-modal__desc">
+          관리 비밀번호(참석 의사 확인 화면과 같은 비밀번호)를 입력하면 지금 내용이 청첩장에 바로 반영돼요.
+        </p>
+        <input
+          className="ed-input"
+          type="password"
+          value={password}
+          autoFocus
+          autoComplete="current-password"
+          aria-label="관리 비밀번호"
+          placeholder="관리 비밀번호"
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {error && (
+          <p className="ed-modal__error" role="alert">
+            {error}
+          </p>
+        )}
+        <div className="ed-modal__actions">
+          <button type="button" className="ed-btn" onClick={onClose} disabled={busy}>
+            취소
+          </button>
+          <button type="submit" className="ed-btn ed-btn--primary" disabled={busy || !password}>
+            {busy ? '적용하는 중…' : '적용하기'}
+          </button>
+        </div>
+      </form>
+    </div>
+  )
+}
+
+export default function Editor({ current: currentConfig }) {
+  const [initial] = useState(() => initialDraft(currentConfig))
   const [draft, setDraft] = useState(initial.draft)
   const [savedAt, setSavedAt] = useState(initial.savedAt)
   const [saveFailed, setSaveFailed] = useState(false)
   const [previewOpen, setPreviewOpen] = useState(false)
+  const [asking, setAsking] = useState(false) // 비밀번호 입력창
+  const [askError, setAskError] = useState('')
+  const [publishing, setPublishing] = useState(false)
+  const [appliedAt, setAppliedAt] = useState(null)
   const wide = useMediaQuery('(min-width: 1024px)')
 
   useEffect(() => {
@@ -267,6 +342,7 @@ export default function Editor() {
   const draftRef = useRef(draft)
   draftRef.current = draft
   const dirtyRef = useRef(false) // 아직 저장하지 않은 변경이 있는지
+  const publishingRef = useRef(false)
 
   // 지금 내용을 이 브라우저에 저장한다.
   const persist = useCallback(() => {
@@ -280,14 +356,56 @@ export default function Editor() {
     return ok
   }, [])
 
-  // 저장 버튼·Ctrl+S: 바로 저장하고 결과를 알려준다.
+  // 지금 내용을 청첩장에 반영한다. 비밀번호가 틀리면 다시 묻는다.
+  const publish = useCallback(async (password) => {
+    const d = draftRef.current
+    if (!d || publishingRef.current) return
+    publishingRef.current = true
+    setPublishing(true)
+    try {
+      await publishSiteConfig({ password, config: toLiveConfig(d) })
+      rememberedPassword.set(password)
+      setAsking(false)
+      setAskError('')
+      setAppliedAt(new Date().toISOString())
+      const hasFiles = Boolean(d.photos.cover || d.photos.gallery.length || (d.bgm === 'upload' && d.bgmFile))
+      toast(
+        hasFiles
+          ? '저장하고 청첩장에 적용했어요. 첨부한 사진·음악은 내보내기로 전달해야 바뀌어요.'
+          : '저장하고 청첩장에 바로 적용했어요.',
+      )
+    } catch (err) {
+      console.error(err)
+      if (/비밀번호/.test(err.message)) {
+        rememberedPassword.set('')
+        setAskError('비밀번호가 올바르지 않아요.')
+        setAsking(true)
+      } else {
+        toast('이 브라우저에는 저장했지만 청첩장에는 적용하지 못했어요. 잠시 후 다시 저장해주세요.')
+      }
+    } finally {
+      publishingRef.current = false
+      setPublishing(false)
+    }
+  }, [])
+
+  // 저장 버튼·Ctrl+S: 이 브라우저에 저장하고, 청첩장에도 바로 반영한다.
   const saveNow = useCallback(() => {
-    toast(
-      persist()
-        ? '저장했어요. 이 브라우저에서 다시 열면 이어서 작성할 수 있어요.'
-        : '저장하지 못했어요. 시크릿 모드이거나 저장 공간이 막혀 있는지 확인해주세요.',
-    )
-  }, [persist])
+    const d = draftRef.current
+    if (!d) return
+    if (!persist()) toast('이 브라우저에는 저장하지 못했어요. 시크릿 모드이거나 저장 공간이 막혀 있는지 확인해주세요.')
+    const missing = checklist(d).filter((c) => c.required && !c.ok)
+    if (missing.length) {
+      toast(`저장했어요. ${missing.map((c) => c.label).join(', ')}이(가) 비어 있어 청첩장에는 아직 적용하지 않았어요.`)
+      return
+    }
+    const password = rememberedPassword.get()
+    if (password) publish(password)
+    else {
+      setAskError('')
+      setAsking(true)
+    }
+  }, [persist, publish])
 
   // 입력이 멈추면 이 브라우저에 자동 저장한다.
   useEffect(() => {
@@ -368,11 +486,10 @@ export default function Editor() {
   }
 
   const required = checks.filter((c) => c.required)
+  const clock = (iso) => new Date(iso).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })
   const savedLabel = saveFailed
     ? '이 브라우저에서는 자동 저장이 안 돼요'
-    : savedAt
-      ? `저장됨 ·${new Date(savedAt).toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' })}`
-      : ''
+    : [savedAt && `임시 저장 ·${clock(savedAt)}`, appliedAt && `청첩장 적용 ·${clock(appliedAt)}`].filter(Boolean).join(' / ')
 
   return (
     <div className="ed">
@@ -388,8 +505,14 @@ export default function Editor() {
             <span className="ed-progress">
               필수 {required.filter((c) => c.ok).length}/{required.length}
             </span>
-            <button type="button" className="ed-btn ed-btn--sm ed-btn--primary" title="저장 (Ctrl+S)" onClick={saveNow}>
-              저장
+            <button
+              type="button"
+              className="ed-btn ed-btn--sm ed-btn--primary"
+              title="저장하고 청첩장에 적용 (Ctrl+S)"
+              onClick={saveNow}
+              disabled={publishing}
+            >
+              {publishing ? '적용 중…' : '저장'}
             </button>
           </div>
         </div>
@@ -452,6 +575,8 @@ export default function Editor() {
           <PreviewFrame config={previewConfig} className="ed-sheet__screen" />
         </div>
       )}
+
+      {asking && <PasswordDialog error={askError} busy={publishing} onSubmit={publish} onClose={() => setAsking(false)} />}
 
       <Toaster />
     </div>

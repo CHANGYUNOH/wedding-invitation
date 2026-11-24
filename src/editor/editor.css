@@ -1686,3 +1686,48 @@ button {
   background: var(--ed-primary);
   color: #fff;
 }
+
+/* 저장할 때 관리 비밀번호를 묻는 창 */
+.ed-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(31, 36, 48, 0.5);
+}
+
+.ed-modal__card {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 360px;
+  padding: 24px 20px 20px;
+  border-radius: 16px;
+  background: var(--ed-surface);
+}
+
+.ed-modal__title {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.ed-modal__desc {
+  color: var(--ed-sub);
+  font-size: 14px;
+}
+
+.ed-modal__error {
+  color: var(--ed-warn);
+  font-size: 14px;
+}
+
+.ed-modal__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}

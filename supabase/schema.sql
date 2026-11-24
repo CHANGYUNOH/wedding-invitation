@@ -370,3 +370,75 @@ create trigger guestbook_notify
   for each row execute function public.notify_guestbook();
 
 revoke all on function public.notify_guestbook() from public, anon, authenticated;
+
+-- ---------- 청첩장 내용 (편집 화면 /edit 에서 저장하면 바로 반영) ----------
+-- 편집 화면에서 "저장"한 글·계좌·디자인 설정을 한 줄로 보관한다. 청첩장은 열릴 때 이 내용을 읽어 덮어쓴다.
+-- 청첩장에 그대로 보이는 내용이라 읽기는 누구나 되고, 쓰기는 관리 비밀번호가 맞아야 아래 함수로만 된다.
+
+create table if not exists public.site_config (
+  id          int primary key default 1 check (id = 1),
+  config      jsonb not null,
+  updated_at  timestamptz not null default now()
+);
+
+alter table public.site_config enable row level security;
+
+drop policy if exists "anyone can read site config" on public.site_config;
+create policy "anyone can read site config" on public.site_config
+  for select to anon, authenticated
+  using (true);
+
+revoke all on public.site_config from anon, authenticated;
+grant select on public.site_config to anon, authenticated;
+
+create or replace function public.publish_site_config(p_password text, p_config jsonb)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  ok boolean;
+  saved_at timestamptz := now();
+begin
+  select password_hash = crypt(coalesce(p_password, ''), password_hash) into ok
+  from public.admin_settings where id = 1;
+
+  if ok is not true then
+    perform pg_sleep(1);
+    raise exception '비밀번호가 올바르지 않습니다.';
+  end if;
+
+  if p_config is null or jsonb_typeof(p_config) <> 'object' or octet_length(p_config::text) > 200000 then
+    raise exception '저장할 내용이 올바르지 않습니다.';
+  end if;
+
+  insert into public.site_config (id, config, updated_at)
+  values (1, p_config, saved_at)
+  on conflict (id) do update set config = excluded.config, updated_at = excluded.updated_at;
+
+  -- 누가 내용을 바꿨는지 바로 알 수 있게 알린다. 알림이 실패해도 저장은 그대로 된다.
+  begin
+    perform public.send_telegram('[청첩장 수정] 편집 화면에서 내용이 저장되어 청첩장에 반영되었습니다.');
+  exception when others then
+    null;
+  end;
+
+  return saved_at;
+end;
+$$;
+
+-- 저장한 내용을 지우고 배포된 wedding.js 내용으로 되돌리기: SQL Editor 에서만 실행할 수 있다.
+--   select public.clear_site_config();
+create or replace function public.clear_site_config()
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  delete from public.site_config where id = 1;
+$$;
+
+revoke all on function public.publish_site_config(text, jsonb) from public;
+grant execute on function public.publish_site_config(text, jsonb) to anon, authenticated;
+revoke all on function public.clear_site_config() from public, anon, authenticated;

@@ -152,3 +152,18 @@ export async function adminDeleteRsvp({ id, password }) {
   local.write('rsvp', rows.filter((r) => r.id !== id))
   return rows.some((r) => r.id === id)
 }
+
+// 편집 화면에서 저장해 둔 청첩장 내용. 없으면 null. (청첩장에 그대로 보이는 내용이라 누구나 읽을 수 있다)
+export async function fetchSiteConfig() {
+  if (!isLocalMode) return (await request('site_config?select=config,updated_at&id=eq.1'))[0] ?? null
+  return local.read('site_config')[0] ?? null
+}
+
+// 편집 화면: 관리 비밀번호로 청첩장 내용을 저장한다. 비밀번호가 틀리면 오류를 던진다.
+export async function publishSiteConfig({ password, config }) {
+  if (!isLocalMode) {
+    await request('rpc/publish_site_config', { body: { p_password: password, p_config: config } })
+    return
+  }
+  local.write('site_config', [{ config, updated_at: new Date().toISOString() }])
+}
