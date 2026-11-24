@@ -168,18 +168,13 @@ export async function publishSiteConfig({ password, config }) {
   local.write('site_config', [{ config, updated_at: new Date().toISOString() }])
 }
 
-// 편집 화면에서 첨부한 배경음악으로 올릴 수 있는 형식과, 서버에 알려줄 종류.
-const AUDIO_TYPES = { mp3: 'audio/mpeg', m4a: 'audio/mp4', aac: 'audio/aac' }
-export const canUploadAudio = (ext) => ext in AUDIO_TYPES
-export const audioType = (ext) => AUDIO_TYPES[ext]
-
 // 편집 화면: 관리 비밀번호가 맞으면 서버가 10분짜리 업로드 허가(ticket)를 내준다. 틀리면 오류를 던진다.
 export async function openUpload(password) {
   if (isLocalMode) return 'local'
   return request('rpc/open_upload', { body: { p_password: password } })
 }
 
-// 허가 번호와 같은 이름의 폴더에 파일(사진·음악)을 올리고, 청첩장에서 쓸 공개 주소를 돌려준다.
+// 허가 번호와 같은 이름의 폴더에 사진을 올리고, 청첩장에서 쓸 공개 주소를 돌려준다.
 export async function uploadFile({ ticket, name, blob, contentType }) {
   if (isLocalMode) return URL.createObjectURL(blob)
   const path = `${ticket}/${name}`

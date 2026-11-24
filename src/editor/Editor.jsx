@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { audioType, canUploadAudio, openUpload, publishSiteConfig, uploadFile } from '../lib/api.js'
+import { openUpload, publishSiteConfig, uploadFile } from '../lib/api.js'
 import { copyText } from '../lib/clipboard.js'
 import { Toaster, toast } from '../components/Toast.jsx'
 import {
@@ -106,18 +106,30 @@ const rememberedPassword = {
 
 // 청첩장에 바로 반영할 내용. 사진은 이미 서버에 올라가 있는 것({ src, thumb })만 담는다 — 새로 첨부한 사진은 먼저 올린다.
 // 표지를 바꾸지 않았으면(cover 가 null) 지금 청첩장의 표지를 그대로 둔다.
-// 첨부한 음악은 서버에 올린 주소(bgmFile.url)가 있을 때만 담고, 없으면 지금 청첩장의 음악을 그대로 둔다.
+// 음악은 기본 제공 곡처럼 배포된 파일의 경로만 담는다. 직접 첨부한 음악은 파일이 커서 서버에 올리지 않고,
+// 내보내기 → 배포로 바꾼다 (그때까지는 지금 청첩장의 음악을 그대로 둔다).
+// 공유 사진: 편집 화면에서 올린 사진(주소가 https 로 시작)만 저장 내용에 담는다.
+// 'images/og.jpg' 같은 배포 파일 경로는 담지 않아, 배포된 공유 사진이 그대로 쓰이게 한다
+// (예전에 작성하던 내용에 남아 있던 옛 경로가 청첩장에 다시 적용되는 일을 막는다).
+function liveShare(shareText, picked) {
+  const { image, ...rest } = shareText
+  if (picked && !isNewPhoto(picked)) return { ...rest, image: picked.src }
+  return /^https?:\/\//.test(image ?? '') ? { ...rest, image } : rest
+}
+
+// 예전에 서버(Storage)에 올렸던 음악 주소인지
+const isUploadedMedia = (path) => /\/storage\/v1\/object\/public\/wedding-media\//.test(path ?? '')
+
 function toLiveConfig(draft) {
   const { bgm, ...rest } = finalize(draft)
   const { cover, gallery, share } = draft.photos
   const config = {
     ...rest,
     cover: { ...rest.cover, ...(cover && !isNewPhoto(cover) ? { image: cover.src } : {}) },
-    share: { ...rest.share, ...(share && !isNewPhoto(share) ? { image: share.src } : {}) },
+    share: liveShare(rest.share, share),
     gallery: gallery.filter((entry) => !isNewPhoto(entry)),
   }
-  if (draft.bgm !== 'upload') return { ...config, bgm }
-  return draft.bgmFile?.url ? { ...config, bgm: draft.bgmFile.url } : config
+  return draft.bgm === 'upload' || isUploadedMedia(bgm) ? config : { ...config, bgm }
 }
 
 function computeInitialDraft(currentConfig, isLive) {
@@ -287,8 +299,8 @@ function Finish({ draft, checks, onReset, onLoadCurrent }) {
           입력을 마쳤다면
         </h2>
         <p className="ed-section__desc">
-          글·계좌·디자인·사진·음악 모두 위의 ‘저장’을 누르면 청첩장에 바로 반영돼요. 아래 내려받기는 지금 내용을 파일로
-          보관하거나 개발자에게 전달할 때 써요.
+          글·계좌·디자인·사진은 위의 ‘저장’을 누르면 청첩장에 바로 반영돼요. 직접 첨부한 음악만 아래 내려받기로 개발자에게
+          전달해야 바뀌어요.
         </p>
       </header>
 
@@ -427,15 +439,13 @@ export default function Editor({ current: currentConfig, currentIsLive = false }
     if (!d || publishingRef.current) return
     publishingRef.current = true
     setPublishing(true)
-    let musicSkipped = false
     let photosSkipped = 0
     try {
-      // 새로 첨부한 사진·음악이 있으면 먼저 서버에 올리고, 올린 주소를 작성 내용에 적어 둔다 (다시 저장할 때 또 올리지 않게).
-      const music = d.bgm === 'upload' && d.bgmFile && !d.bgmFile.url ? d.bgmFile : null
+      // 새로 첨부한 사진이 있으면 먼저 서버에 올리고, 올린 주소를 작성 내용에 적어 둔다 (다시 저장할 때 또 올리지 않게).
       const photoIds = newPhotoIds(d)
-      if (music || photoIds.length) {
+      if (photoIds.length) {
         const ticket = await openUpload(password)
-        await loadMedia([...photoIds, music?.id].filter(Boolean))
+        await loadMedia(photoIds)
 
         const uploaded = {} // 사진 id → { src, thumb }
         for (const [n, id] of photoIds.entries()) {
@@ -460,17 +470,6 @@ export default function Editor({ current: currentConfig, currentIsLive = false }
         }
         photosSkipped = photoIds.length - Object.keys(uploaded).length
 
-        let musicUrl = null
-        if (music) {
-          setProgress('음악 올리는 중')
-          const blob = mediaBlob(music.id)
-          if (blob && canUploadAudio(music.ext)) {
-            musicUrl = await uploadFile({ ticket, name: `bgm-${music.id}.${music.ext}`, blob, contentType: audioType(music.ext) })
-          } else {
-            musicSkipped = true
-          }
-        }
-
         // 올린 사진은 id 대신 주소로 바꿔 적는다. 올리지 못한 사진은 그대로 남겨 다음 저장 때 다시 시도한다.
         const swap = (entry) => (isNewPhoto(entry) && uploaded[entry] ? uploaded[entry] : entry)
         const applyUploads = (cur) => ({
@@ -480,7 +479,6 @@ export default function Editor({ current: currentConfig, currentIsLive = false }
             gallery: cur.photos.gallery.map(swap),
             share: cur.photos.share ? swap(cur.photos.share) : null,
           },
-          ...(musicUrl && cur.bgmFile?.id === music.id ? { bgmFile: { ...cur.bgmFile, url: musicUrl } } : {}),
         })
         d = applyUploads(d)
         setDraft((cur) => (cur ? applyUploads(cur) : cur))
@@ -493,9 +491,10 @@ export default function Editor({ current: currentConfig, currentIsLive = false }
       setAsking(false)
       setAskError('')
       setAppliedAt(new Date().toISOString())
+      const musicPending = d.bgm === 'upload' && Boolean(d.bgmFile)
       toast(
-        musicSkipped
-          ? '저장하고 청첩장에 적용했어요. 다만 첨부한 음악은 올리지 못했어요. mp3나 m4a 파일로 다시 첨부해주세요.'
+        musicPending
+          ? '저장하고 청첩장에 적용했어요. 첨부한 음악은 아래 내려받기로 개발자에게 전달해야 바뀌어요.'
           : photosSkipped
             ? `저장하고 청첩장에 적용했어요. 다만 사진 ${photosSkipped}장은 올리지 못했어요. 그 사진을 다시 첨부해주세요.`
             : '저장하고 청첩장에 바로 적용했어요.',

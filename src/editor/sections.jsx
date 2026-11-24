@@ -941,7 +941,7 @@ export function MusicSection({ draft, set, done, urls, current }) {
             checked={bgm === liveCustom}
             onSelect={() => set('bgm', liveCustom)}
             title={NOW_PLAYING}
-            sub={`첨부해서 올린 음악 · ${liveCustom.split('/').pop()}`}
+            sub={`직접 넣은 음악 · ${liveCustom.split('/').pop()}`}
             play={playOf(asset(liveCustom))}
           />
         )}
@@ -983,7 +983,7 @@ export function MusicSection({ draft, set, done, urls, current }) {
       <ul className="ed-notes">
         <li>휴대폰은 자동 재생을 막기 때문에, 하객이 청첩장 오른쪽 위 음악 버튼을 누르면 재생돼요.</li>
         <li>음악은 끝나면 처음부터 다시 반복돼요.</li>
-        <li>직접 첨부한 음악은 위의 ‘저장’을 누르면 서버에 올라가 청첩장에 바로 적용돼요. (mp3·m4a)</li>
+        <li>기본 제공 곡은 ‘저장’을 누르면 바로 바뀌어요. 직접 첨부한 음악은 파일이 커서, 맨 아래 내려받기로 개발자에게 전달해야 바뀌어요.</li>
         <li>아이폰에서는 ‘파일’ 앱에 저장된 음악만 고를 수 있어요. 직접 첨부할 때는 사용 권한이 있는 음악인지 확인해주세요.</li>
       </ul>
     </Section>

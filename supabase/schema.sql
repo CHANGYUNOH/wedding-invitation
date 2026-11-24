@@ -400,6 +400,17 @@ as $$
 declare
   ok boolean;
   saved_at timestamptz := now();
+  old jsonb;
+  -- 알림에 적을 항목 이름 (이 순서대로 적는다)
+  labels constant text[][] := array[
+    ['groom', '신랑 정보'], ['bride', '신부 정보'], ['hostOrder', '이름 순서'], ['datetime', '예식 일시'],
+    ['venue', '예식장·오시는 길'], ['greeting', '인사말'], ['cover', '표지'], ['gallery', '갤러리 사진'],
+    ['accounts', '계좌'], ['bgm', '배경음악'], ['share', '공유 설정'], ['theme', '디자인']
+  ];
+  item text[];
+  label text;
+  changed text[] := '{}';
+  message text;
 begin
   select password_hash = crypt(coalesce(p_password, ''), password_hash) into ok
   from public.admin_settings where id = 1;
@@ -413,13 +424,41 @@ begin
     raise exception '저장할 내용이 올바르지 않습니다.';
   end if;
 
+  select config into old from public.site_config where id = 1;
+
   insert into public.site_config (id, config, updated_at)
   values (1, p_config, saved_at)
   on conflict (id) do update set config = excluded.config, updated_at = excluded.updated_at;
 
-  -- 누가 내용을 바꿨는지 바로 알 수 있게 알린다. 알림이 실패해도 저장은 그대로 된다.
+  -- 무엇이 바뀌었는지 항목 이름으로 알린다. 알림이 실패해도 저장은 그대로 된다.
   begin
-    perform public.send_telegram('[청첩장 수정] 편집 화면에서 내용이 저장되어 청첩장에 반영되었습니다.');
+    if old is null then
+      message := '편집 화면에서 내용이 처음 저장되어 청첩장에 반영되었습니다.';
+    else
+      foreach item slice 1 in array labels loop
+        -- 예전에 저장한 내용에 없던 항목(예: 갤러리)은 무엇이 바뀌었는지 알 수 없어 건너뛴다.
+        continue when not (old ? item[1]) and item[1] in ('gallery');
+        if (old -> item[1]) is distinct from (p_config -> item[1]) then
+          label := item[2];
+          if item[1] = 'gallery' and jsonb_typeof(old -> 'gallery') = 'array' and jsonb_typeof(p_config -> 'gallery') = 'array' then
+            if jsonb_array_length(old -> 'gallery') <> jsonb_array_length(p_config -> 'gallery') then
+              label := label || ' (' || jsonb_array_length(old -> 'gallery') || '장 → ' || jsonb_array_length(p_config -> 'gallery') || '장)';
+            else
+              label := label || ' (순서·사진 변경)';
+            end if;
+          end if;
+          changed := changed || label;
+        end if;
+      end loop;
+      if array_length(changed, 1) is null then
+        message := null; -- 바뀐 것 없이 다시 저장한 경우는 알리지 않는다
+      else
+        message := '바뀐 항목: ' || array_to_string(changed, ', ');
+      end if;
+    end if;
+    if message is not null then
+      perform public.send_telegram('[청첩장 수정] ' || message);
+    end if;
   exception when others then
     null;
   end;
@@ -443,13 +482,14 @@ revoke all on function public.publish_site_config(text, jsonb) from public;
 grant execute on function public.publish_site_config(text, jsonb) to anon, authenticated;
 revoke all on function public.clear_site_config() from public, anon, authenticated;
 
--- ---------- 첨부 파일 (편집 화면에서 올린 사진·배경음악) ----------
--- 편집 화면에서 첨부한 사진·음악은 Storage 의 공개 버킷에 올라가고, 청첩장은 그 주소로 보여주고 튼다.
+-- ---------- 첨부 파일 (편집 화면에서 올린 사진) ----------
+-- 편집 화면에서 첨부한 사진은 Storage 의 공개 버킷에 올라가고, 청첩장은 그 주소로 보여준다.
+-- (음악은 파일이 커서 올리지 않는다. 배포된 파일을 쓴다)
 -- 아무나 올리지 못하도록, 관리 비밀번호가 맞을 때만 10분짜리 업로드 허가(ticket)를 내준다.
 -- 허가 번호와 같은 이름의 폴더에만 올릴 수 있다. 읽기는 공개 주소로 누구나 된다.
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-values ('wedding-media', 'wedding-media', true, 15728640, array['image/jpeg', 'audio/mpeg', 'audio/mp4', 'audio/aac'])
+values ('wedding-media', 'wedding-media', true, 15728640, array['image/jpeg'])
 on conflict (id) do update
   set public = excluded.public,
       file_size_limit = excluded.file_size_limit,

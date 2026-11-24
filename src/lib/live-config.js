@@ -1,7 +1,8 @@
 // 편집 화면(/edit)에서 "저장"한 내용은 Supabase(site_config)에 올라가고,
 // 청첩장은 열릴 때 그 내용을 빌드된 설정(wedding.js + 비공개 정보) 위에 덮어쓴다.
-// 그래서 글·계좌·디자인·사진·음악은 다시 배포하지 않아도 바로 바뀐다.
-// 편집 화면에서 새로 올린 사진·음악은 Supabase Storage 에 있고, 저장된 내용에는 그 주소가 적힌다.
+// 그래서 글·계좌·디자인·사진은 다시 배포하지 않아도 바로 바뀐다.
+// 편집 화면에서 새로 올린 사진은 Supabase Storage 에 있고, 저장된 내용에는 그 주소가 적힌다.
+// 음악은 파일이 커서 배포된 파일(Vercel)만 쓴다 — Storage 에 올라간 음악 주소가 저장돼 있어도 쓰지 않는다.
 import { wedding as publicWedding } from '../config/wedding.js'
 import { withPrivate } from '../config/private.js'
 import { fetchSiteConfig } from './api.js'
@@ -12,12 +13,14 @@ const CACHE_KEY = 'wedding:live-config'
 const isPlainObject = (v) => v !== null && typeof v === 'object' && !Array.isArray(v)
 
 const text = (v) => (typeof v === 'string' && v ? v : null)
+const isUploadedMedia = (path) => typeof path === 'string' && /\/storage\/v1\/object\/public\/wedding-media\//.test(path)
 
 // 저장된 내용을 빌드된 설정 위에 합친다. 사진 항목은 모양이 맞는 것만 받고, 없으면 빌드된 사진을 그대로 쓴다.
 export function applyLive(saved) {
   if (!isPlainObject(saved)) return builtConfig
   const { gallery, cover, ...rest } = saved
   const overrides = { ...rest }
+  if (isUploadedMedia(overrides.bgm)) delete overrides.bgm // 배포된 음악 파일을 그대로 쓴다
   if (isPlainObject(cover)) {
     overrides.cover = {
       ...(typeof cover.caption === 'string' ? { caption: cover.caption } : {}),
