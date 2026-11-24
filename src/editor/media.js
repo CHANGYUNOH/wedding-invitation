@@ -61,16 +61,16 @@ function loadImage(file) {
 }
 
 // 브라우저는 사진의 회전 정보를 반영해 그리므로, 캔버스로 다시 저장하면 방향은 맞고 메타데이터는 빠진다.
-async function shrink(file) {
+async function shrink(file, maxSide = MAX_SIDE, quality = QUALITY) {
   const { img, url } = await loadImage(file)
   try {
-    const scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight))
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight))
     const canvas = document.createElement('canvas')
     canvas.width = Math.round(img.naturalWidth * scale)
     canvas.height = Math.round(img.naturalHeight * scale)
     canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height)
     return await new Promise((resolve, reject) =>
-      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode'))), 'image/jpeg', QUALITY),
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode'))), 'image/jpeg', quality),
     )
   } finally {
     URL.revokeObjectURL(url)
@@ -158,6 +158,9 @@ export async function clearMedia() {
 }
 
 export const mediaBlob = (id) => cache.get(id)?.blob ?? null
+
+// 보관해 둔 사진을 청첩장에 올릴 크기(긴 변 maxSide)의 JPG로 다시 줄인다.
+export const resizeImage = (blob, maxSide, quality = 0.82) => shrink(blob, maxSide, quality)
 export const isPersistent = () => persistent
 
 // 보관된 파일을 불러와 미리보기용 주소(blob:)를 만든다.

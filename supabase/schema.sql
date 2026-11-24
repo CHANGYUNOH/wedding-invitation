@@ -442,3 +442,71 @@ $$;
 revoke all on function public.publish_site_config(text, jsonb) from public;
 grant execute on function public.publish_site_config(text, jsonb) to anon, authenticated;
 revoke all on function public.clear_site_config() from public, anon, authenticated;
+
+-- ---------- 첨부 파일 (편집 화면에서 올린 사진·배경음악) ----------
+-- 편집 화면에서 첨부한 사진·음악은 Storage 의 공개 버킷에 올라가고, 청첩장은 그 주소로 보여주고 튼다.
+-- 아무나 올리지 못하도록, 관리 비밀번호가 맞을 때만 10분짜리 업로드 허가(ticket)를 내준다.
+-- 허가 번호와 같은 이름의 폴더에만 올릴 수 있다. 읽기는 공개 주소로 누구나 된다.
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('wedding-media', 'wedding-media', true, 15728640, array['image/jpeg', 'audio/mpeg', 'audio/mp4', 'audio/aac'])
+on conflict (id) do update
+  set public = excluded.public,
+      file_size_limit = excluded.file_size_limit,
+      allowed_mime_types = excluded.allowed_mime_types;
+
+create table if not exists public.upload_tickets (
+  token       uuid primary key default gen_random_uuid(),
+  expires_at  timestamptz not null
+);
+
+alter table public.upload_tickets enable row level security;
+revoke all on public.upload_tickets from anon, authenticated;
+
+create or replace function public.open_upload(p_password text)
+returns text
+language plpgsql
+security definer
+set search_path = public, extensions
+as $$
+declare
+  ok boolean;
+  ticket uuid;
+begin
+  select password_hash = crypt(coalesce(p_password, ''), password_hash) into ok
+  from public.admin_settings where id = 1;
+
+  if ok is not true then
+    perform pg_sleep(1);
+    raise exception '비밀번호가 올바르지 않습니다.';
+  end if;
+
+  delete from public.upload_tickets where expires_at < now();
+  insert into public.upload_tickets (expires_at) values (now() + interval '10 minutes') returning token into ticket;
+  return ticket::text;
+end;
+$$;
+
+-- 올리려는 파일의 첫 폴더 이름이 아직 유효한 허가 번호인지 확인한다 (아래 정책에서 쓴다).
+create or replace function public.upload_allowed(p_name text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from public.upload_tickets
+    where token::text = split_part(p_name, '/', 1) and expires_at > now()
+  );
+$$;
+
+revoke all on function public.open_upload(text) from public;
+grant execute on function public.open_upload(text) to anon, authenticated;
+revoke all on function public.upload_allowed(text) from public;
+grant execute on function public.upload_allowed(text) to anon, authenticated;
+
+drop policy if exists "upload wedding media with ticket" on storage.objects;
+create policy "upload wedding media with ticket" on storage.objects
+  for insert to anon, authenticated
+  with check (bucket_id = 'wedding-media' and public.upload_allowed(name));

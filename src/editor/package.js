@@ -3,6 +3,7 @@
 import { strToU8, zipSync } from 'fflate'
 import { toWeddingJs } from './exportConfig.js'
 import { loadMedia, mediaBlob } from './media.js'
+import { asset } from '../lib/asset.js'
 
 const README = `청첩장 정보 입력 페이지에서 내보낸 파일입니다.
 
@@ -24,7 +25,7 @@ export function packageName(now = new Date()) {
 export async function buildPackage(draft) {
   const { cover, gallery } = draft.photos
   const music = draft.bgm === 'upload' ? draft.bgmFile : null
-  await loadMedia([cover, ...gallery, music?.id].filter(Boolean))
+  await loadMedia([cover, ...gallery, music?.id].filter((id) => typeof id === 'string'))
 
   // 메모장에서도 한글이 깨지지 않도록 BOM을 붙인다.
   const files = {
@@ -32,8 +33,12 @@ export async function buildPackage(draft) {
     'README.txt': strToU8(`﻿${README}`),
   }
   // 사진·음악은 이미 압축된 파일이라 다시 압축하지 않고 담기만 한다.
-  const add = async (path, id) => {
-    const blob = mediaBlob(id)
+  // 새로 첨부한 사진(id)은 보관소에서, 이미 올라가 있는 사진({ src })은 그 주소에서 받아 담는다.
+  const add = async (path, entry) => {
+    const blob =
+      typeof entry === 'string'
+        ? mediaBlob(entry)
+        : await fetch(asset(entry.src)).then((res) => (res.ok ? res.blob() : null), () => null)
     if (blob) files[path] = [new Uint8Array(await blob.arrayBuffer()), { level: 0 }]
   }
   if (cover) await add('photos/cover.jpg', cover)

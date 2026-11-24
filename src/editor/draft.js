@@ -70,15 +70,23 @@ export function blankDraft(base) {
     bgm: base.bgm,
     bgmFile: null, // 첨부한 음악 { id, name, ext, duration }
     share: { title: '', description: '', image: base.share.image, siteUrl: base.share.siteUrl },
-    // 편집 페이지에서 첨부한 사진 id (실제 파일은 photos.js 가 IndexedDB에 보관)
+    // 사진. 새로 첨부한 사진은 보관소 id(문자열, 실제 파일은 media.js 가 IndexedDB에 보관),
+    // 이미 청첩장에 올라가 있는 사진은 { src, thumb } 로 적는다. cover 가 null 이면 지금 표지를 그대로 쓴다.
     photos: { cover: null, gallery: [] },
   }
 }
 
+// 청첩장 설정의 갤러리 목록('경로' 또는 { src, thumb })을 편집용 { src, thumb } 목록으로 바꾼다.
+export const siteGallery = (list) =>
+  (Array.isArray(list) ? list : [])
+    .map((p) => (typeof p === 'string' ? { src: p, thumb: p } : { src: p?.src, thumb: p?.thumb ?? p?.src }))
+    .filter((p) => typeof p.src === 'string' && p.src)
+
 // 지금 청첩장 설정을 편집용으로 옮긴다. 예전 설정에 없던 항목은 빈 양식 값으로 채운다.
+// (작성하던 내용을 넣으면 사진 목록은 그대로 두고, 청첩장 설정을 넣으면 그 갤러리로 시작한다)
 export function draftFromConfig(config) {
   const blank = blankDraft(config)
-  const { gallery: _gallery, cover, ...rest } = structuredClone(config)
+  const { gallery, cover, ...rest } = structuredClone(config)
   // 공유 문구가 자동 문구와 같으면 비워서, 이름·날짜를 고칠 때 함께 바뀌게 한다.
   const auto = autoShareText({ ...blank, ...rest })
   const share = { ...blank.share, ...rest.share }
@@ -92,6 +100,7 @@ export function draftFromConfig(config) {
     bride: { ...blank.bride, ...rest.bride },
     venue: { ...blank.venue, ...rest.venue },
     cover: { caption: cover?.caption ?? blank.cover.caption },
+    photos: rest.photos ?? { cover: null, gallery: siteGallery(gallery) },
     accounts: {
       groom: rest.accounts.groom.map((a) => ({ kakaopay: '', ...a })),
       bride: rest.accounts.bride.map((a) => ({ kakaopay: '', ...a })),
@@ -245,7 +254,12 @@ export function finalize(draft) {
 // mediaUrls: 첨부한 사진·음악 id → 미리보기 주소. 첨부하지 않은 사진은 지금 청첩장 사진을 쓴다.
 export function toPreviewConfig(draft, base, mediaUrls = {}) {
   const d = finalize(draft)
-  const attachedGallery = draft.photos.gallery.filter((id) => mediaUrls[id]).map((id) => ({ src: mediaUrls[id], thumb: mediaUrls[id] }))
+  // 새로 첨부한 사진은 미리보기 주소로, 이미 올라가 있는 사진은 그대로 보여준다.
+  const gallery = draft.photos.gallery
+    .map((entry) => (typeof entry === 'string' ? mediaUrls[entry] && { src: mediaUrls[entry], thumb: mediaUrls[entry] } : entry))
+    .filter(Boolean)
+  const { cover } = draft.photos
+  const coverImage = typeof cover === 'string' ? mediaUrls[cover] : cover?.src
   const placeholder = (p, label) => ({ ...p, name: p.name || label, shortName: p.shortName || label })
   return {
     ...d,
@@ -257,8 +271,8 @@ export function toPreviewConfig(draft, base, mediaUrls = {}) {
       name: d.venue.name || '예식장 이름',
       ...(hasCoords(d.venue) ? {} : { lat: base.venue.lat, lng: base.venue.lng }),
     },
-    cover: { ...d.cover, image: mediaUrls[draft.photos.cover] ?? base.cover.image },
-    gallery: attachedGallery.length ? attachedGallery : base.gallery,
+    cover: { ...d.cover, image: coverImage ?? base.cover.image },
+    gallery,
     bgm: draft.bgm === 'upload' ? (mediaUrls[draft.bgmFile?.id] ?? '') : d.bgm,
   }
 }

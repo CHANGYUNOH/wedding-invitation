@@ -8,7 +8,8 @@ import { BGM_PRESETS, formatDuration } from '../music/presets.js'
 import { ensureThemeFonts } from '../lib/theme-fonts.js'
 import { addAudio, addPhotos, removeMedia, MAX_AUDIO_SIZE_MB } from './media.js'
 import { toast } from '../components/Toast.jsx'
-import { GREETING_TEMPLATES, autoShareText, hasCoords, isValidDatetime, shortNameOf } from './draft.js'
+import { useSortable } from './useSortable.js'
+import { GREETING_TEMPLATES, autoShareText, hasCoords, isValidDatetime, shortNameOf, siteGallery } from './draft.js'
 import { wedding as currentConfig } from '../config/wedding.js'
 import QrDownload, { normalizeUrl } from './QrDownload.jsx'
 import { Check, CloseIcon, Datalist, Field, IconButton, PlusIcon, Row, Section, TextArea, TextInput } from './ui.jsx'
@@ -565,9 +566,19 @@ function FilePicker({ accept = 'image/*', multiple = false, onFiles, className =
   )
 }
 
-export function PhotoSection({ draft, set, done, urls }) {
+// 사진 한 장: 새로 첨부한 사진은 보관소 id(문자열), 이미 청첩장에 올라가 있는 사진은 { src, thumb }.
+const isNewPhoto = (entry) => typeof entry === 'string'
+const photoKey = (entry) => (isNewPhoto(entry) ? entry : entry.src)
+const samePhotos = (a, b) => a.length === b.length && a.every((entry, i) => photoKey(entry) === photoKey(b[i]))
+
+export function PhotoSection({ draft, set, done, urls, current }) {
   const { cover, gallery } = draft.photos
   const [busy, setBusy] = useState('')
+
+  // 지금 청첩장에 올라가 있는 사진
+  const liveCover = /\.svg$/i.test(current.cover.image ?? '') ? '' : (current.cover.image ?? '')
+  const liveGallery = siteGallery(current.gallery)
+  const photoUrl = (entry, size = 'thumb') => (isNewPhoto(entry) ? urls[entry] : asset(entry[size] ?? entry.src))
 
   const attach = async (fileList, target) => {
     const files = [...fileList].filter((file) => file.type.startsWith('image/') || /.(heic|heif)$/i.test(file.name))
@@ -575,11 +586,12 @@ export function PhotoSection({ draft, set, done, urls }) {
     const room = target === 'cover' ? 1 : MAX_GALLERY - gallery.length
     const picked = files.slice(0, room)
     if (picked.length < files.length && target === 'gallery') toast(`갤러리 사진은 최대 ${MAX_GALLERY}장까지 넣을 수 있어요.`)
+    if (!picked.length) return
     setBusy(`사진을 준비하고 있어요… 0/${picked.length}`)
     const { ids, failed, persistent } = await addPhotos(picked, (n, total) => setBusy(`사진을 준비하고 있어요… ${n}/${total}`))
     setBusy('')
     if (target === 'cover' && ids[0]) {
-      if (cover) removeMedia(cover)
+      if (isNewPhoto(cover)) removeMedia(cover)
       set('photos.cover', ids[0])
     }
     if (target === 'gallery' && ids.length) set('photos.gallery', (list) => [...list, ...ids])
@@ -587,48 +599,80 @@ export function PhotoSection({ draft, set, done, urls }) {
     else if (!persistent) toast('이 브라우저에서는 사진이 임시 저장되지 않아요. 새로고침하면 다시 골라야 해요.')
   }
 
-  const move = (i, step) =>
+  // fromKey 사진을 toKey 사진의 자리로 옮긴다.
+  const moveTo = (fromKey, toKey) =>
     set('photos.gallery', (list) => {
-      const j = i + step
-      if (j < 0 || j >= list.length) return list
+      const from = list.findIndex((x) => photoKey(x) === fromKey)
+      const to = list.findIndex((x) => photoKey(x) === toKey)
+      if (from < 0 || to < 0 || from === to) return list
       const next = [...list]
-      ;[next[i], next[j]] = [next[j], next[i]]
+      next.splice(to, 0, next.splice(from, 1)[0])
       return next
     })
-  const drop = (id) => {
-    removeMedia(id)
-    set('photos.gallery', (list) => list.filter((x) => x !== id))
+  const sortable = useSortable(gallery.map(photoKey), moveTo)
+  const drop = (entry) => {
+    sortable.snapshot() // 남은 사진들이 빈자리로 미끄러져 들어오게
+    if (isNewPhoto(entry)) removeMedia(entry)
+    set('photos.gallery', (list) => list.filter((x) => photoKey(x) !== photoKey(entry)))
+  }
+  // 키보드: 사진에 초점을 두고 ← → 로 한 칸씩 옮긴다.
+  const nudge = (e, i) => {
+    const step = e.key === 'ArrowLeft' ? -1 : e.key === 'ArrowRight' ? 1 : 0
+    const other = gallery[i + step]
+    if (!step || !other) return
+    e.preventDefault()
+    sortable.snapshot()
+    moveTo(photoKey(gallery[i]), photoKey(other))
   }
   const dropAll = () => {
-    if (!window.confirm('갤러리 사진을 모두 지울까요?')) return
-    gallery.forEach(removeMedia)
+    if (!window.confirm('갤러리 사진을 모두 뺄까요? 저장하기 전까지는 청첩장에 그대로 남아 있어요.')) return
+    gallery.filter(isNewPhoto).forEach(removeMedia)
     set('photos.gallery', [])
   }
+  const restore = () => {
+    if (!window.confirm('갤러리를 지금 청첩장에 올라가 있는 사진으로 되돌릴까요? 새로 첨부한 사진은 빠져요.')) return
+    gallery.filter(isNewPhoto).forEach(removeMedia)
+    set('photos.gallery', liveGallery)
+  }
   const dropCover = () => {
-    removeMedia(cover)
+    if (isNewPhoto(cover)) removeMedia(cover)
     set('photos.cover', null)
   }
+
+  const coverUrl = cover ? photoUrl(cover, 'src') : ''
+  const newCount = gallery.filter(isNewPhoto).length
 
   return (
     <Section
       id="photos"
       emoji="📷"
       title="사진"
-      desc="표지 사진 1장과 갤러리 사진을 골라주세요. 첨부하지 않으면 지금 청첩장 사진을 그대로 써요."
+      desc="표지 사진과 갤러리 사진을 고친 뒤 위의 ‘저장’을 누르면 청첩장에 바로 반영돼요."
       done={done}
       optional
     >
       <Field label="표지 사진" hint="세로로 긴 사진이 잘 어울려요.">
         {cover ? (
           <div className="ed-cover-photo">
-            {urls[cover] ? <img src={urls[cover]} alt="표지 사진" /> : <span className="ed-photo__loading" />}
+            {coverUrl ? <img src={coverUrl} alt="표지 사진" /> : <span className="ed-photo__loading" />}
             <div className="ed-cover-photo__actions">
+              {isNewPhoto(cover) && <span className="ed-photo-badge">새 사진</span>}
               <FilePicker onFiles={(files) => attach(files, 'cover')} className="ed-btn">
                 바꾸기
               </FilePicker>
               <button type="button" className="ed-btn" onClick={dropCover}>
-                삭제
+                {liveCover ? '원래 사진으로' : '삭제'}
               </button>
+            </div>
+          </div>
+        ) : liveCover ? (
+          <div className="ed-cover-photo">
+            <img src={asset(liveCover)} alt="지금 청첩장의 표지 사진" />
+            <div className="ed-cover-photo__actions">
+              <span className="ed-photo-current">지금 청첩장 사진</span>
+              <FilePicker onFiles={(files) => attach(files, 'cover')} className="ed-btn">
+                다른 사진으로 바꾸기
+              </FilePicker>
             </div>
           </div>
         ) : (
@@ -641,32 +685,30 @@ export function PhotoSection({ draft, set, done, urls }) {
       </Field>
 
       <Field
-        label={`갤러리 사진${gallery.length ? ` ${gallery.length}장` : ''}`}
-        hint="화살표로 순서를 바꿀 수 있어요. 처음 9장이 먼저 보이고, 나머지는 ‘사진 더보기’로 보여요."
+        label={`갤러리 사진 ${gallery.length}장${newCount ? ` (새 사진 ${newCount}장)` : ''}`}
+        hint="사진을 끌어서 순서를 바꿔요. 휴대폰에서는 사진을 잠깐 누르고 있다가 끌면 돼요. 처음 9장이 먼저 보이고 나머지는 ‘사진 더보기’로 보여요."
       >
-        <div className="ed-photo-grid">
-          {gallery.map((id, i) => (
-            <div key={id} className="ed-photo">
-              {urls[id] ? <img src={urls[id]} alt={`갤러리 사진 ${i + 1}`} /> : <span className="ed-photo__loading" />}
-              <span className="ed-photo__num">{i + 1}</span>
-              <div className="ed-photo__actions">
-                <button type="button" aria-label={`${i + 1}번 사진 앞으로`} disabled={i === 0} onClick={() => move(i, -1)}>
-                  ‹
-                </button>
-                <button type="button" aria-label={`${i + 1}번 사진 삭제`} onClick={() => drop(id)}>
-                  ✕
-                </button>
-                <button
-                  type="button"
-                  aria-label={`${i + 1}번 사진 뒤로`}
-                  disabled={i === gallery.length - 1}
-                  onClick={() => move(i, 1)}
-                >
-                  ›
+        <div className="ed-photo-grid" ref={sortable.gridRef}>
+          {gallery.map((entry, i) => {
+            const key = photoKey(entry)
+            const url = photoUrl(entry)
+            return (
+              <div
+                key={key}
+                className={`ed-photo ed-photo--sortable${sortable.activeKey === key ? ' is-dragging' : ''}`}
+                tabIndex={0}
+                aria-label={`갤러리 사진 ${i + 1}번째. 끌거나 좌우 화살표 키로 순서를 바꿀 수 있어요.`}
+                onKeyDown={(e) => nudge(e, i)}
+                {...sortable.item(key)}
+              >
+                {url ? <img src={url} alt="" draggable={false} loading="lazy" /> : <span className="ed-photo__loading" />}
+                {isNewPhoto(entry) && <span className="ed-photo__new">새 사진</span>}
+                <button type="button" className="ed-photo__remove" aria-label={`${i + 1}번째 사진 빼기`} onClick={() => drop(entry)}>
+                  <CloseIcon />
                 </button>
               </div>
-            </div>
-          ))}
+            )
+          })}
           {gallery.length < MAX_GALLERY && (
             <FilePicker multiple onFiles={(files) => attach(files, 'gallery')} className="ed-photo ed-photo--add">
               <PlusIcon />
@@ -674,11 +716,18 @@ export function PhotoSection({ draft, set, done, urls }) {
             </FilePicker>
           )}
         </div>
-        {gallery.length > 1 && (
-          <button type="button" className="ed-link ed-photo-clear" onClick={dropAll}>
-            모두 지우기
-          </button>
-        )}
+        <div className="ed-photo-links">
+          {!samePhotos(gallery, liveGallery) && liveGallery.length > 0 && (
+            <button type="button" className="ed-link" onClick={restore}>
+              지금 청첩장 사진으로 되돌리기
+            </button>
+          )}
+          {gallery.length > 1 && (
+            <button type="button" className="ed-link" onClick={dropAll}>
+              모두 빼기
+            </button>
+          )}
+        </div>
       </Field>
 
       {busy && (
@@ -688,12 +737,10 @@ export function PhotoSection({ draft, set, done, urls }) {
       )}
 
       <ul className="ed-notes">
-        <li>사진은 알맞은 크기로 줄어들고, 촬영 위치 같은 정보는 지워져요.</li>
+        <li>순서를 바꾸거나 빼거나 추가한 내용은 위의 ‘저장’을 눌러야 청첩장에 반영돼요. 그 전까지 청첩장은 그대로예요.</li>
+        <li>새 사진은 알맞은 크기로 줄어들고, 촬영 위치 같은 정보는 지워져요.</li>
         <li>
-          첨부한 사진은 <b>이 브라우저에만</b> 임시 저장돼요. 마지막에 내려받으면 입력 내용과 함께 담겨요.
-        </li>
-        <li>
-          <b>배경음악</b>을 넣고 싶다면 mp3 파일을 개발자에게 따로 전달해주세요.
+          새로 첨부한 사진은 저장하기 전까지 <b>이 브라우저에만</b> 임시로 남아요.
         </li>
       </ul>
     </Section>
@@ -782,12 +829,18 @@ function MusicOption({ checked, disabled = false, onSelect, title, sub, badge, p
   )
 }
 
-export function MusicSection({ draft, set, done, urls }) {
+const NOW_PLAYING = '지금 청첩장 음악'
+
+export function MusicSection({ draft, set, done, urls, current }) {
   const player = usePreviewPlayer()
   const [busy, setBusy] = useState(false)
   const { bgm, bgmFile } = draft
-  // 기본 제공 곡이 아닌 경로가 이미 설정돼 있으면(예: audio/bgm.mp3) 그대로 고를 수 있게 보여준다.
-  const customPath = bgm && bgm !== 'upload' && !BGM_PRESETS.some((p) => p.path === bgm) ? bgm : null
+  const isPreset = (path) => BGM_PRESETS.some((p) => p.path === path)
+  // 지금 청첩장에 흐르는 음악. 기본 제공 곡이 아니면(예: 첨부해서 배포한 audio/bgm.mp3) 따로 한 줄로 보여준다.
+  const liveBgm = current?.bgm ?? ''
+  const liveCustom = liveBgm && !isPreset(liveBgm) ? liveBgm : null
+  // 작성 중인 내용에 지금 청첩장과 다른 경로가 적혀 있으면 그것도 고를 수 있게 보여준다.
+  const customPath = bgm && bgm !== 'upload' && !isPreset(bgm) && bgm !== liveCustom ? bgm : null
   const playOf = (src) => (src ? { playing: player.playing === src, onClick: () => player.toggle(src) } : null)
 
   const attach = async (files) => {
@@ -824,25 +877,40 @@ export function MusicSection({ draft, set, done, urls }) {
       id="music"
       emoji="🎵"
       title="배경음악"
-      desc="청첩장에 흐를 음악을 골라주세요. ▶를 누르면 미리 들어볼 수 있어요."
+      desc="청첩장에 흐를 음악을 골라주세요. ▶를 누르면 미리 들어볼 수 있어요. 지금 청첩장에 흐르는 음악에는 ‘지금 청첩장 음악’ 표시가 있어요."
       done={done}
       optional
     >
       <div className="ed-music" role="radiogroup" aria-label="배경음악">
-        <MusicOption checked={!bgm} onSelect={() => set('bgm', '')} title="음악 없음" sub="음악 버튼이 보이지 않아요" />
+        <MusicOption
+          checked={!bgm}
+          onSelect={() => set('bgm', '')}
+          title="음악 없음"
+          badge={liveBgm ? '' : NOW_PLAYING}
+          sub="음악 버튼이 보이지 않아요"
+        />
+        {liveCustom && (
+          <MusicOption
+            checked={bgm === liveCustom}
+            onSelect={() => set('bgm', liveCustom)}
+            title={NOW_PLAYING}
+            sub={`첨부해서 올린 음악 · ${liveCustom.split('/').pop()}`}
+            play={playOf(asset(liveCustom))}
+          />
+        )}
         {BGM_PRESETS.map((p) => (
           <MusicOption
             key={p.id}
             checked={bgm === p.path}
             onSelect={() => set('bgm', p.path)}
             title={p.title}
-            badge={p.mood}
+            badge={liveBgm === p.path ? `${p.mood} · ${NOW_PLAYING}` : p.mood}
             sub={`${p.credit} · ${formatDuration(p.duration)}`}
             play={playOf(asset(p.path))}
           />
         ))}
         {customPath && (
-          <MusicOption checked onSelect={() => {}} title="지금 청첩장 음악" sub={customPath} play={playOf(asset(customPath))} />
+          <MusicOption checked onSelect={() => {}} title="직접 적은 음악 경로" sub={customPath} play={playOf(asset(customPath))} />
         )}
         <MusicOption
           checked={bgm === 'upload'}
@@ -868,6 +936,7 @@ export function MusicSection({ draft, set, done, urls }) {
       <ul className="ed-notes">
         <li>휴대폰은 자동 재생을 막기 때문에, 하객이 청첩장 오른쪽 위 음악 버튼을 누르면 재생돼요.</li>
         <li>음악은 끝나면 처음부터 다시 반복돼요.</li>
+        <li>직접 첨부한 음악은 위의 ‘저장’을 누르면 서버에 올라가 청첩장에 바로 적용돼요. (mp3·m4a)</li>
         <li>아이폰에서는 ‘파일’ 앱에 저장된 음악만 고를 수 있어요. 직접 첨부할 때는 사용 권한이 있는 음악인지 확인해주세요.</li>
       </ul>
     </Section>

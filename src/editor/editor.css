@@ -1731,3 +1731,144 @@ button {
   gap: 8px;
   margin-top: 4px;
 }
+
+/* 사진 칸: 지금 청첩장에 올라가 있는 사진 */
+.ed-photo-current {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--ed-primary-soft);
+  color: var(--ed-primary-dark);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ed-photo-now {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--ed-line);
+  border-radius: 12px;
+  background: var(--ed-surface);
+}
+
+.ed-photo-now__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.ed-photo-now__grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.ed-photo-now__grid img {
+  display: block;
+  width: 100%;
+  border-radius: 6px;
+  background: var(--ed-track);
+  aspect-ratio: 1;
+  object-fit: cover;
+}
+
+.ed-photo-now__note {
+  margin-top: 10px;
+  color: var(--ed-muted);
+  font-size: 13px;
+}
+
+/* 갤러리 편집: 끌어서 순서 바꾸기, 새 사진 표시, 빼기 버튼 */
+.ed-photo-grid {
+  position: relative; /* 사진의 자리를 이 격자 기준으로 잰다 */
+}
+
+.ed-photo--sortable {
+  cursor: grab;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none; /* 길게 눌렀을 때 사진 저장 메뉴가 뜨지 않게 */
+}
+
+.ed-photo--sortable > img {
+  pointer-events: none;
+}
+
+.ed-photo--sortable:focus-visible {
+  outline: 3px solid var(--ed-primary);
+  outline-offset: 2px;
+}
+
+.ed-photo.is-dragging {
+  z-index: 5;
+  cursor: grabbing;
+  box-shadow: 0 14px 30px rgba(17, 18, 22, 0.3);
+}
+
+.ed-photo__remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 999px;
+  background: rgba(17, 18, 22, 0.62);
+  color: #fff;
+  cursor: pointer;
+}
+
+.ed-photo__remove svg {
+  width: 12px;
+  height: 12px;
+}
+
+/* 버튼은 작게 보이지만 손가락으로 누르기 쉽게 누르는 범위는 넓힌다 */
+.ed-photo__remove::after {
+  position: absolute;
+  inset: -9px;
+  content: '';
+}
+
+.ed-photo__remove:hover {
+  background: var(--ed-warn);
+}
+
+.ed-photo.is-dragging .ed-photo__remove {
+  visibility: hidden;
+}
+
+.ed-photo__new,
+.ed-photo-badge {
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: var(--ed-primary);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.ed-photo__new {
+  position: absolute;
+  bottom: 6px;
+  left: 6px;
+}
+
+.ed-photo-badge {
+  align-self: flex-start;
+}
+
+.ed-photo-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-top: 10px;
+}
+
+.ed-photo-links .ed-link {
+  color: var(--ed-sub);
+}

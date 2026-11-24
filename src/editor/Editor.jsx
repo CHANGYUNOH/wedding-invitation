@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { publishSiteConfig } from '../lib/api.js'
+import { audioType, canUploadAudio, openUpload, publishSiteConfig, uploadFile } from '../lib/api.js'
 import { copyText } from '../lib/clipboard.js'
 import { Toaster, toast } from '../components/Toast.jsx'
 import {
@@ -18,7 +18,7 @@ import {
 import { toWeddingJs } from './exportConfig.js'
 import { saveFile } from './saveFile.js'
 import PreviewFrame from './Preview.jsx'
-import { clearMedia, useMediaUrls } from './media.js'
+import { clearMedia, loadMedia, mediaBlob, removeMedia, resizeImage, useMediaUrls } from './media.js'
 import { CloseIcon, Connector, PlusIcon } from './ui.jsx'
 import {
   AccountSection,
@@ -37,7 +37,50 @@ import {
 // 작성하던 내용이 없으면 지금 청첩장 내용으로 바로 시작한다. (같은 내용으로는 한 번만 한다)
 // 개발 모드에서는 React가 초기화 함수를 두 번 부르므로, 한 번 계산한 결과를 다시 쓴다.
 let initialCache = null
-const initialDraft = (currentConfig) => (initialCache ??= computeInitialDraft(currentConfig))
+const initialDraft = (currentConfig, isLive) => (initialCache ??= computeInitialDraft(currentConfig, isLive))
+
+// 작성 중인 글이 청첩장과 마지막으로 같았던 때의 모습을 기억해 둔다 (불러왔을 때·저장해서 적용했을 때).
+// 그 뒤로 고친 것이 없으면, 다음에 열 때 지금 청첩장 내용으로 다시 맞춘다.
+// 다른 기기에서 저장한 내용이 이 브라우저의 예전 내용으로 되돌아가는 일을 막기 위해서다.
+const SYNC_KEY = 'wedding-editor:synced'
+const textOf = (draft) => {
+  const { bgmFile: _bgmFile, ...text } = draft
+  return JSON.stringify(text)
+}
+const synced = {
+  matches(draft) {
+    try {
+      return localStorage.getItem(SYNC_KEY) === textOf(draft)
+    } catch {
+      return false
+    }
+  },
+  mark(draft) {
+    try {
+      localStorage.setItem(SYNC_KEY, textOf(draft))
+    } catch {
+      // 저장소를 쓸 수 없으면 기억하지 않는다.
+    }
+  },
+}
+
+// 글과 사진 목록을 지금 청첩장 내용으로 바꾼다. 첨부한 음악은 그대로 둔다.
+function withCurrentText(draft, currentConfig) {
+  const next = draftFromConfig(currentConfig)
+  return { ...next, ...(draft.bgm === 'upload' ? { bgm: draft.bgm, bgmFile: draft.bgmFile } : {}) }
+}
+
+const isNewPhoto = (entry) => typeof entry === 'string'
+const newPhotoIds = (draft) => [draft.photos.cover, ...draft.photos.gallery].filter(isNewPhoto)
+
+// 갤러리가 비어 있는 작성 내용(예전에 만든 것)은 지금 청첩장의 갤러리로 채운다.
+function withGallery(draft, base) {
+  if (!draft || draft.photos.gallery.length || !base.photos.gallery.length) return draft
+  return { ...draft, photos: { ...draft.photos, gallery: base.photos.gallery } }
+}
+
+// 올릴 사진 크기 (긴 변 기준). 빌드할 때 줄이는 크기와 비슷하게 맞춘다.
+const PHOTO_SIZE = { cover: 1600, full: 1600, thumb: 480 }
 
 // "저장"할 때 쓰는 관리 비밀번호(/admin 과 같은 것)를 이 탭에만 기억한다. 탭을 닫으면 지워진다.
 const PASSWORD_KEY = 'wedding-admin:password'
@@ -59,19 +102,37 @@ const rememberedPassword = {
   },
 }
 
-// 청첩장에 바로 반영할 내용. 사진과 첨부한 음악은 파일이라 여기에 담지 않는다 (지금 청첩장의 것을 그대로 쓴다).
+// 청첩장에 바로 반영할 내용. 사진은 이미 서버에 올라가 있는 것({ src, thumb })만 담는다 — 새로 첨부한 사진은 먼저 올린다.
+// 표지를 바꾸지 않았으면(cover 가 null) 지금 청첩장의 표지를 그대로 둔다.
+// 첨부한 음악은 서버에 올린 주소(bgmFile.url)가 있을 때만 담고, 없으면 지금 청첩장의 음악을 그대로 둔다.
 function toLiveConfig(draft) {
   const { bgm, ...rest } = finalize(draft)
-  return draft.bgm === 'upload' ? rest : { ...rest, bgm }
+  const { cover, gallery } = draft.photos
+  const config = {
+    ...rest,
+    cover: { ...rest.cover, ...(cover && !isNewPhoto(cover) ? { image: cover.src } : {}) },
+    gallery: gallery.filter((entry) => !isNewPhoto(entry)),
+  }
+  if (draft.bgm !== 'upload') return { ...config, bgm }
+  return draft.bgmFile?.url ? { ...config, bgm: draft.bgmFile.url } : config
 }
 
-function computeInitialDraft(currentConfig) {
+function computeInitialDraft(currentConfig, isLive) {
   const saved = loadDraft()
   const base = draftFromConfig(currentConfig)
   const fresh = !alreadyFilledFrom(base)
   if (fresh) markFilledFrom(base)
-  if (!saved) return { draft: fresh ? base : null, savedAt: null, notice: fresh ? '지금 청첩장 내용을 불러왔어요.' : '' }
-  const mine = draftFromConfig(saved.draft)
+  if (!saved) {
+    if (fresh) synced.mark(base)
+    return { draft: fresh ? base : null, savedAt: null, notice: fresh ? '지금 청첩장 내용을 불러왔어요.' : '' }
+  }
+  const mine = withGallery(draftFromConfig(saved.draft), base)
+  // 청첩장과 맞춘 뒤 고친 것이 없으면, 지금 청첩장 내용으로 다시 맞춘다.
+  if (isLive && synced.matches(saved.draft)) {
+    const draft = withCurrentText(mine, currentConfig)
+    synced.mark(draft)
+    return { draft, savedAt: saved.savedAt, notice: '지금 청첩장 내용을 불러왔어요.' }
+  }
   const { draft, filled } = fresh ? fillBlanks(mine, base) : { draft: mine, filled: 0 }
   return {
     draft,
@@ -180,7 +241,7 @@ function Intro({ onBlank, onCurrent }) {
 
 function Finish({ draft, checks, onReset, onLoadCurrent }) {
   const missing = checks.filter((c) => c.required && !c.ok)
-  const photoCount = (draft.photos.cover ? 1 : 0) + draft.photos.gallery.length
+  const photoCount = (draft.photos.cover ? 1 : 0) + draft.photos.gallery.length // 내려받는 파일에 담길 사진 수
   const hasMusic = draft.bgm === 'upload' && Boolean(draft.bgmFile)
   // 첨부 파일 설명: '사진 3장 + 음악'
   const filesLabel = [photoCount && `사진 ${photoCount}장`, hasMusic && '음악'].filter(Boolean).join(' + ')
@@ -223,8 +284,8 @@ function Finish({ draft, checks, onReset, onLoadCurrent }) {
           입력을 마쳤다면
         </h2>
         <p className="ed-section__desc">
-          글·계좌·디자인은 위의 ‘저장’을 누르면 청첩장에 바로 반영돼요. 사진과 첨부한 음악을 바꾸려면 파일로 내보내 개발자에게
-          전달해주세요.
+          글·계좌·디자인·사진·음악 모두 위의 ‘저장’을 누르면 청첩장에 바로 반영돼요. 아래 내려받기는 지금 내용을 파일로
+          보관하거나 개발자에게 전달할 때 써요.
         </p>
       </header>
 
@@ -323,8 +384,8 @@ function PasswordDialog({ error, busy, onSubmit, onClose }) {
   )
 }
 
-export default function Editor({ current: currentConfig }) {
-  const [initial] = useState(() => initialDraft(currentConfig))
+export default function Editor({ current: currentConfig, currentIsLive = false }) {
+  const [initial] = useState(() => initialDraft(currentConfig, currentIsLive))
   const [draft, setDraft] = useState(initial.draft)
   const [savedAt, setSavedAt] = useState(initial.savedAt)
   const [saveFailed, setSaveFailed] = useState(false)
@@ -333,6 +394,7 @@ export default function Editor({ current: currentConfig }) {
   const [askError, setAskError] = useState('')
   const [publishing, setPublishing] = useState(false)
   const [appliedAt, setAppliedAt] = useState(null)
+  const [progress, setProgress] = useState('') // 저장 중 진행 상황 (사진 올리는 중 2/5)
   const wide = useMediaQuery('(min-width: 1024px)')
 
   useEffect(() => {
@@ -358,21 +420,75 @@ export default function Editor({ current: currentConfig }) {
 
   // 지금 내용을 청첩장에 반영한다. 비밀번호가 틀리면 다시 묻는다.
   const publish = useCallback(async (password) => {
-    const d = draftRef.current
+    let d = draftRef.current
     if (!d || publishingRef.current) return
     publishingRef.current = true
     setPublishing(true)
+    let musicSkipped = false
+    let photosSkipped = 0
     try {
+      // 새로 첨부한 사진·음악이 있으면 먼저 서버에 올리고, 올린 주소를 작성 내용에 적어 둔다 (다시 저장할 때 또 올리지 않게).
+      const music = d.bgm === 'upload' && d.bgmFile && !d.bgmFile.url ? d.bgmFile : null
+      const photoIds = newPhotoIds(d)
+      if (music || photoIds.length) {
+        const ticket = await openUpload(password)
+        await loadMedia([...photoIds, music?.id].filter(Boolean))
+
+        const uploaded = {} // 사진 id → { src, thumb }
+        for (const [n, id] of photoIds.entries()) {
+          setProgress(`사진 올리는 중 ${n + 1}/${photoIds.length}`)
+          const blob = mediaBlob(id)
+          if (!blob) continue // 보관해 둔 파일이 사라진 사진은 건너뛴다
+          const isCover = d.photos.cover === id
+          const full = await resizeImage(blob, isCover ? PHOTO_SIZE.cover : PHOTO_SIZE.full)
+          const src = await uploadFile({ ticket, name: `${id}.jpg`, blob: full, contentType: 'image/jpeg' })
+          const thumb = isCover
+            ? src
+            : await uploadFile({
+                ticket,
+                name: `${id}-thumb.jpg`,
+                blob: await resizeImage(blob, PHOTO_SIZE.thumb, 0.8),
+                contentType: 'image/jpeg',
+              })
+          uploaded[id] = { src, thumb }
+        }
+        photosSkipped = photoIds.length - Object.keys(uploaded).length
+
+        let musicUrl = null
+        if (music) {
+          setProgress('음악 올리는 중')
+          const blob = mediaBlob(music.id)
+          if (blob && canUploadAudio(music.ext)) {
+            musicUrl = await uploadFile({ ticket, name: `bgm-${music.id}.${music.ext}`, blob, contentType: audioType(music.ext) })
+          } else {
+            musicSkipped = true
+          }
+        }
+
+        // 올린 사진은 id 대신 주소로 바꿔 적는다. 올리지 못한 사진은 그대로 남겨 다음 저장 때 다시 시도한다.
+        const swap = (entry) => (isNewPhoto(entry) && uploaded[entry] ? uploaded[entry] : entry)
+        const applyUploads = (cur) => ({
+          ...cur,
+          photos: { cover: cur.photos.cover && swap(cur.photos.cover), gallery: cur.photos.gallery.map(swap) },
+          ...(musicUrl && cur.bgmFile?.id === music.id ? { bgmFile: { ...cur.bgmFile, url: musicUrl } } : {}),
+        })
+        d = applyUploads(d)
+        setDraft((cur) => (cur ? applyUploads(cur) : cur))
+        Object.keys(uploaded).forEach(removeMedia)
+      }
+      setProgress('')
       await publishSiteConfig({ password, config: toLiveConfig(d) })
       rememberedPassword.set(password)
+      synced.mark(d)
       setAsking(false)
       setAskError('')
       setAppliedAt(new Date().toISOString())
-      const hasFiles = Boolean(d.photos.cover || d.photos.gallery.length || (d.bgm === 'upload' && d.bgmFile))
       toast(
-        hasFiles
-          ? '저장하고 청첩장에 적용했어요. 첨부한 사진·음악은 내보내기로 전달해야 바뀌어요.'
-          : '저장하고 청첩장에 바로 적용했어요.',
+        musicSkipped
+          ? '저장하고 청첩장에 적용했어요. 다만 첨부한 음악은 올리지 못했어요. mp3나 m4a 파일로 다시 첨부해주세요.'
+          : photosSkipped
+            ? `저장하고 청첩장에 적용했어요. 다만 사진 ${photosSkipped}장은 올리지 못했어요. 그 사진을 다시 첨부해주세요.`
+            : '저장하고 청첩장에 바로 적용했어요.',
       )
     } catch (err) {
       console.error(err)
@@ -386,6 +502,7 @@ export default function Editor({ current: currentConfig }) {
     } finally {
       publishingRef.current = false
       setPublishing(false)
+      setProgress('')
     }
   }, [])
 
@@ -444,7 +561,7 @@ export default function Editor({ current: currentConfig }) {
   }, [previewOpen])
 
   const set = useCallback((path, value) => setDraft((d) => setIn(d, path, value)), [])
-  const photoUrls = useMediaUrls(draft ? [draft.photos.cover, ...draft.photos.gallery, draft.bgmFile?.id].filter(Boolean) : [])
+  const photoUrls = useMediaUrls(draft ? [...newPhotoIds(draft), draft.bgmFile?.id].filter(Boolean) : [])
   // 사진 주소 객체는 매번 새로 만들어지므로, 내용(photoKey)이 바뀔 때만 미리보기를 다시 계산한다.
   const photoKey = JSON.stringify(photoUrls)
   const previewConfig = useMemo(() => draft && toPreviewConfig(draft, currentConfig, photoUrls), [draft, photoKey])
@@ -455,12 +572,14 @@ export default function Editor({ current: currentConfig }) {
     setDraft(next)
     window.scrollTo(0, 0)
   }
-  // 작성 중인 글을 지금 배포된 청첩장 내용으로 바꾼다. 첨부한 사진·음악은 그대로 둔다.
+  // 작성 중인 글과 사진 목록을 지금 청첩장 내용으로 바꾼다. 첨부한 음악은 그대로 둔다.
   const loadCurrent = () => {
-    if (!window.confirm('작성 중인 글을 지금 청첩장 내용으로 바꿀까요? 첨부한 사진과 음악은 그대로 남아요.')) return
+    if (!window.confirm('작성 중인 내용을 지금 청첩장 내용으로 바꿀까요? 새로 첨부하고 아직 저장하지 않은 사진은 빠져요.')) return
+    if (draftRef.current) newPhotoIds(draftRef.current).forEach(removeMedia)
     setDraft((d) => {
-      const next = draftFromConfig(currentConfig)
-      return { ...next, photos: d.photos, ...(d.bgm === 'upload' ? { bgm: d.bgm, bgmFile: d.bgmFile } : {}) }
+      const next = withCurrentText(d, currentConfig)
+      synced.mark(next)
+      return next
     })
     window.scrollTo(0, 0)
     toast('지금 청첩장 내용을 불러왔어요.')
@@ -479,7 +598,12 @@ export default function Editor({ current: currentConfig }) {
   if (!draft) {
     return (
       <>
-        <Intro onBlank={() => start(blankDraft(currentConfig))} onCurrent={() => start(draftFromConfig(currentConfig))} />
+        <Intro onBlank={() => start(blankDraft(currentConfig))} onCurrent={() => {
+            const next = draftFromConfig(currentConfig)
+            synced.mark(next)
+            start(next)
+          }}
+        />
         <Toaster />
       </>
     )
@@ -512,7 +636,7 @@ export default function Editor({ current: currentConfig }) {
               onClick={saveNow}
               disabled={publishing}
             >
-              {publishing ? '적용 중…' : '저장'}
+              {publishing ? progress || '적용 중…' : '저장'}
             </button>
           </div>
         </div>
@@ -536,7 +660,7 @@ export default function Editor({ current: currentConfig }) {
         <main className="ed-form">
           {SECTIONS.map(({ id, Component }) => (
             <Fragment key={id}>
-              <Component draft={draft} set={set} done={sectionDone(id, draft, checks)} urls={photoUrls} />
+              <Component draft={draft} set={set} done={sectionDone(id, draft, checks)} urls={photoUrls} current={currentConfig} />
               <Connector />
             </Fragment>
           ))}
