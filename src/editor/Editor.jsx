@@ -18,7 +18,7 @@ import {
 import { toWeddingJs } from './exportConfig.js'
 import { saveFile } from './saveFile.js'
 import PreviewFrame from './Preview.jsx'
-import { clearMedia, loadMedia, mediaBlob, removeMedia, resizeImage, useMediaUrls } from './media.js'
+import { clearMedia, cropImage, loadMedia, mediaBlob, removeMedia, resizeImage, useMediaUrls } from './media.js'
 import { CloseIcon, Connector, PlusIcon } from './ui.jsx'
 import {
   AccountSection,
@@ -71,7 +71,7 @@ function withCurrentText(draft, currentConfig) {
 }
 
 const isNewPhoto = (entry) => typeof entry === 'string'
-const newPhotoIds = (draft) => [draft.photos.cover, ...draft.photos.gallery].filter(isNewPhoto)
+const newPhotoIds = (draft) => [draft.photos.cover, draft.photos.share, ...draft.photos.gallery].filter(isNewPhoto)
 
 // 갤러리가 비어 있는 작성 내용(예전에 만든 것)은 지금 청첩장의 갤러리로 채운다.
 function withGallery(draft, base) {
@@ -81,6 +81,8 @@ function withGallery(draft, base) {
 
 // 올릴 사진 크기 (긴 변 기준). 빌드할 때 줄이는 크기와 비슷하게 맞춘다.
 const PHOTO_SIZE = { cover: 1600, full: 1600, thumb: 480 }
+// 공유 카드 사진은 카카오톡·링크 미리보기에 맞는 가로로 긴 크기로 자른다.
+const SHARE_SIZE = { width: 1200, height: 630 }
 
 // "저장"할 때 쓰는 관리 비밀번호(/admin 과 같은 것)를 이 탭에만 기억한다. 탭을 닫으면 지워진다.
 const PASSWORD_KEY = 'wedding-admin:password'
@@ -107,10 +109,11 @@ const rememberedPassword = {
 // 첨부한 음악은 서버에 올린 주소(bgmFile.url)가 있을 때만 담고, 없으면 지금 청첩장의 음악을 그대로 둔다.
 function toLiveConfig(draft) {
   const { bgm, ...rest } = finalize(draft)
-  const { cover, gallery } = draft.photos
+  const { cover, gallery, share } = draft.photos
   const config = {
     ...rest,
     cover: { ...rest.cover, ...(cover && !isNewPhoto(cover) ? { image: cover.src } : {}) },
+    share: { ...rest.share, ...(share && !isNewPhoto(share) ? { image: share.src } : {}) },
     gallery: gallery.filter((entry) => !isNewPhoto(entry)),
   }
   if (draft.bgm !== 'upload') return { ...config, bgm }
@@ -440,9 +443,12 @@ export default function Editor({ current: currentConfig, currentIsLive = false }
           const blob = mediaBlob(id)
           if (!blob) continue // 보관해 둔 파일이 사라진 사진은 건너뛴다
           const isCover = d.photos.cover === id
-          const full = await resizeImage(blob, isCover ? PHOTO_SIZE.cover : PHOTO_SIZE.full)
+          const isShare = d.photos.share === id
+          const full = isShare
+            ? await cropImage(blob, SHARE_SIZE.width, SHARE_SIZE.height)
+            : await resizeImage(blob, isCover ? PHOTO_SIZE.cover : PHOTO_SIZE.full)
           const src = await uploadFile({ ticket, name: `${id}.jpg`, blob: full, contentType: 'image/jpeg' })
-          const thumb = isCover
+          const thumb = isCover || isShare
             ? src
             : await uploadFile({
                 ticket,
@@ -469,7 +475,11 @@ export default function Editor({ current: currentConfig, currentIsLive = false }
         const swap = (entry) => (isNewPhoto(entry) && uploaded[entry] ? uploaded[entry] : entry)
         const applyUploads = (cur) => ({
           ...cur,
-          photos: { cover: cur.photos.cover && swap(cur.photos.cover), gallery: cur.photos.gallery.map(swap) },
+          photos: {
+            cover: cur.photos.cover && swap(cur.photos.cover),
+            gallery: cur.photos.gallery.map(swap),
+            share: cur.photos.share ? swap(cur.photos.share) : null,
+          },
           ...(musicUrl && cur.bgmFile?.id === music.id ? { bgmFile: { ...cur.bgmFile, url: musicUrl } } : {}),
         })
         d = applyUploads(d)

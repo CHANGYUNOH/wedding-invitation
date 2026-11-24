@@ -77,6 +77,25 @@ async function shrink(file, maxSide = MAX_SIDE, quality = QUALITY) {
   }
 }
 
+// 사진을 가운데 기준으로 잘라 정확히 width×height 크기의 JPG로 만든다 (공유 카드 사진용).
+async function crop(file, width, height, quality = 0.85) {
+  const { img, url } = await loadImage(file)
+  try {
+    const scale = Math.max(width / img.naturalWidth, height / img.naturalHeight)
+    const w = img.naturalWidth * scale
+    const h = img.naturalHeight * scale
+    const canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    canvas.getContext('2d').drawImage(img, (width - w) / 2, (height - h) / 2, w, h)
+    return await new Promise((resolve, reject) =>
+      canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode'))), 'image/jpeg', quality),
+    )
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 // ---------- 음악 ----------
 
 // 브라우저가 재생할 수 있는 음악인지 확인하고 길이(초)를 잰다.
@@ -161,6 +180,7 @@ export const mediaBlob = (id) => cache.get(id)?.blob ?? null
 
 // 보관해 둔 사진을 청첩장에 올릴 크기(긴 변 maxSide)의 JPG로 다시 줄인다.
 export const resizeImage = (blob, maxSide, quality = 0.82) => shrink(blob, maxSide, quality)
+export const cropImage = (blob, width, height) => crop(blob, width, height)
 export const isPersistent = () => persistent
 
 // 보관된 파일을 불러와 미리보기용 주소(blob:)를 만든다.

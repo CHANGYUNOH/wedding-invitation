@@ -484,7 +484,28 @@ export function AccountSection({ draft, set, done }) {
 
 // ---------- 공유 ----------
 
-export function ShareSection({ draft, set, done }) {
+export function ShareSection({ draft, set, done, urls }) {
+  const [busy, setBusy] = useState(false)
+  // 공유 카드 사진: 새로 고른 사진(id) → 이미 올라간 사진({ src }) → 지금 청첩장의 공유 사진 순으로 보여준다.
+  const picked = draft.photos.share
+  const shareImage = typeof picked === 'string' ? urls[picked] : picked ? asset(picked.src) : asset(draft.share.image)
+  const pickImage = async (fileList) => {
+    const file = [...fileList].find((f) => f.type.startsWith('image/'))
+    if (!file) return
+    setBusy(true)
+    const { ids, failed } = await addPhotos([file])
+    setBusy(false)
+    if (!ids[0]) {
+      if (failed.length) toast('열 수 없는 사진이에요. 아이폰 HEIC 사진은 JPG로 바꿔서 넣어주세요.')
+      return
+    }
+    if (typeof picked === 'string') removeMedia(picked)
+    set('photos.share', ids[0])
+  }
+  const resetImage = () => {
+    if (typeof picked === 'string') removeMedia(picked)
+    set('photos.share', null)
+  }
   const auto = autoShareText(draft)
   const title = draft.share.title.trim() || auto.title
   const description = draft.share.description.trim() || auto.description
@@ -500,10 +521,36 @@ export function ShareSection({ draft, set, done }) {
       <Field label="공유 설명">
         <TextInput label="공유 설명" value={draft.share.description} onChange={(v) => set('share.description', v)} placeholder={auto.description} />
       </Field>
-      <Field label="카카오톡 미리보기">
+      <Field
+        label="공유 사진"
+        hint="카카오톡 공유 카드에 보이는 사진이에요. 가로로 긴 모양(약 2:1)으로 가운데가 잘려서 들어가요."
+      >
+        <div className="ed-cover-photo ed-share-photo">
+          {shareImage ? <img src={shareImage} alt="공유 사진" /> : <span className="ed-photo__loading" />}
+          <div className="ed-cover-photo__actions">
+            {typeof picked === 'string' ? (
+              <span className="ed-photo-badge">새 사진</span>
+            ) : (
+              <span className="ed-photo-current">{picked ? '고른 사진' : '지금 청첩장 사진'}</span>
+            )}
+            <FilePicker onFiles={pickImage} className="ed-btn">
+              {busy ? '사진 준비 중…' : picked ? '바꾸기' : '다른 사진으로 바꾸기'}
+            </FilePicker>
+            {picked && (
+              <button type="button" className="ed-btn" onClick={resetImage}>
+                원래 사진으로
+              </button>
+            )}
+          </div>
+        </div>
+      </Field>
+      <Field
+        label="카카오톡 미리보기"
+        hint="‘저장’을 누르면 청첩장의 공유하기 버튼으로 보내는 카드에 바로 반영돼요. 카톡방에 주소를 직접 붙였을 때 뜨는 미리보기는 다시 배포해야 바뀌어요."
+      >
         <div className="ed-kakao">
           <div className="ed-kakao__card">
-            <img src={asset(draft.share.image)} alt="" />
+            {shareImage ? <img src={shareImage} alt="" /> : <span className="ed-kakao__loading" />}
             <div className="ed-kakao__text">
               <strong>{title}</strong>
               <p>{description}</p>

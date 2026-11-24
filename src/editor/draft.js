@@ -72,7 +72,8 @@ export function blankDraft(base) {
     share: { title: '', description: '', image: base.share.image, siteUrl: base.share.siteUrl },
     // 사진. 새로 첨부한 사진은 보관소 id(문자열, 실제 파일은 media.js 가 IndexedDB에 보관),
     // 이미 청첩장에 올라가 있는 사진은 { src, thumb } 로 적는다. cover 가 null 이면 지금 표지를 그대로 쓴다.
-    photos: { cover: null, gallery: [] },
+    // share: 카카오톡 공유 카드 사진. null 이면 지금 공유 사진(share.image)을 그대로 쓴다.
+    photos: { cover: null, gallery: [], share: null },
   }
 }
 
@@ -100,7 +101,7 @@ export function draftFromConfig(config) {
     bride: { ...blank.bride, ...rest.bride },
     venue: { ...blank.venue, ...rest.venue },
     cover: { caption: cover?.caption ?? blank.cover.caption },
-    photos: rest.photos ?? { cover: null, gallery: siteGallery(gallery) },
+    photos: rest.photos ? { share: null, ...rest.photos } : { cover: null, gallery: siteGallery(gallery), share: null },
     accounts: {
       groom: rest.accounts.groom.map((a) => ({ kakaopay: '', ...a })),
       bride: rest.accounts.bride.map((a) => ({ kakaopay: '', ...a })),
